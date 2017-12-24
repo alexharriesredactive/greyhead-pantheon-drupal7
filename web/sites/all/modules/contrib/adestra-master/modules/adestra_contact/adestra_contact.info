@@ -1,0 +1,7 @@
+name = Adestra Contact
+description = Manage and integrate Adestra Contacts.
+package = Adestra
+core = 7.x
+dependencies[] = adestra
+
+configure = admin/config/services/adestra/contact

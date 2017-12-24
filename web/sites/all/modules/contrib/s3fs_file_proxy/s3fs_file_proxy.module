@@ -1,0 +1,34 @@
+<?php
+/**
+ * Implements hook_init().
+ * Apache has already not found the physical file (possibly because it has
+ * been migrated to Amazon S3, but we still have hardcoded paths in content).
+ * Intercept certain requests and attempt to redirect to the S3 file URI.
+ */
+function s3fs_file_proxy_init() {
+  // Make sure we're requesting a file in the files dir
+  // Currently this only works for PUBLIC files. This should be OK, because
+  // we should only be dealing with hardcoded paths in HTML.
+  $file_dir = variable_get('file_public_path', conf_path() . '/files');;
+  if (strpos($_GET['q'], $file_dir) !== 0) {
+    return;
+  }
+
+  // Process:
+  // 1. Strip base path and query local files table for public s3 equiv path
+  // 1. Redirect output to that s3 path
+  // Q. Does this care about image styles / imagecache?  I think not.. I think a hardcoded path is a path..
+
+  // Construct the would-be path with public S3 public files prefix and requested file path
+  $file_path = str_replace($file_dir, '', $_GET['q']);
+  $public_s3_prefix = 's3://s3fs-public';
+  $s3fs_file_path = $public_s3_prefix . $file_path;
+
+  if ( db_query('select fid from {file_managed} where uri = :uri LIMIT 1', array(':uri' => $s3fs_file_path))->fetchField() ) {
+    header("Location: " . file_create_url($s3fs_file_path));
+    exit;
+  }
+
+  return;
+
+}

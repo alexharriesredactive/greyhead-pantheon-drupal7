@@ -1,0 +1,13 @@
+name = footermap
+description = Recursively generates and displays basic site map of non-hidden menu items in the footer.  Optionally uses path.module.
+core = 7.x
+files[] = footermap.module
+dependencies[] = menu
+configure = admin/structure/footermap
+
+; Information added by Drupal.org packaging script on 2016-02-27
+version = "7.x-1.3"
+core = "7.x"
+project = "footermap"
+datestamp = "1456586657"
+

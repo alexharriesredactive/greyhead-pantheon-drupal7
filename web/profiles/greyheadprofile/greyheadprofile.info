@@ -1,0 +1,16 @@
+name = Greyhead Drupal 7
+description = Set up a simple website with modular webpages, photo galleries, news and more.
+version = 7.x-1.0-20170725
+core = 7.x
+project = "greyheadprofile"
+
+dependencies[] = block
+dependencies[] = dblog
+dependencies[] = features
+dependencies[] = common_base_modules
+dependencies[] = update_notifications_redirect
+dependencies[] = common_user_roles
+dependencies[] = login_toboggan_settings
+dependencies[] = drupal_search
+dependencies[] = paragraph_page
+dependencies[] = backup_migrate_daily

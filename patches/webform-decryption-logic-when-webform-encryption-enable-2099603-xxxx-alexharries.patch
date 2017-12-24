@@ -1,0 +1,50 @@
+diff --git a/webform.module b/webform.module
+index 56f4b17..f2f381b 100644
+--- a/webform.module
++++ b/webform.module
+@@ -2265,7 +2265,7 @@ function webform_block_view($delta = '') {
+         '#node' => $node,
+         '#sid' => $_SESSION['webform_confirmation'][$nid]['sid'],
+       );
+-    }
++    }
+     elseif (strlen(trim(strip_tags($node->webform['confirmation'])))) {
+       // Display confirmation link drupal status messages, but in the block.
+       $message = webform_replace_tokens($node->webform['confirmation'],
+@@ -3329,6 +3329,37 @@ function webform_client_form_submit($form, &$form_state) {
+   if (!$is_draft && !$form_state['values']['details']['finished']) {
+     drupal_static_reset('webform_get_submission');
+     $submission = webform_get_submission($node->webform['nid'], $sid);
++
++    /**
++     * If the webform encrypt module is installed and the current user has no
++     * access to view the encrypted values, we assume that the editor who
++     * configured this form wishes to send the data via email in unencrypted form,
++     * so we copy the values into an array which we know will be decrypted and
++     * overwrite the encrypted values.
++     *
++     * We need to be careful when iterating over the webform's values, as not all
++     * fields are necessarily encrypted. We test this by seeing if the value
++     * stored in the field can be unserialized.
++     *
++     * @TODO: make sure that this unserialize test is an appropriate way to check for encrypted data.
++     */
++    if (module_exists('webform_encrypt')) {
++      // Loop through all submission value arrays.
++      foreach ($submission->data as $submission_value_key => &$submission_value_array) {
++        // Is it an array? Does it have items?
++        if (is_array($submission_value_array) && (count($submission_value_array) > 0)) {
++          foreach ($submission_value_array as $submission_value_array_key => &$submission_value_array_item) {
++            // Can we unserialize this value? We use @ to suppress any errors.
++            if (($submission_value_array_item_unserialized = @unserialize($submission_value_array_item)) !== FALSE) {
++              // Unserialize was successful; decrypt the serialized data and copy it
++              // back into the original value.
++              $submission_value_array_item = decrypt($submission_value_array_item, array('base64' => TRUE));
++            }
++          }
++        }
++      }
++    }
++
+     webform_submission_send_mail($node, $submission);
+   }

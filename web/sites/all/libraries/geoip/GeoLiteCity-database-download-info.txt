@@ -1,0 +1,1 @@
+Downloaded from http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz on 2016 04 01

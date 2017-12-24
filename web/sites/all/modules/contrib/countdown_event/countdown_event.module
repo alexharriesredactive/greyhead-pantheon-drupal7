@@ -1,0 +1,164 @@
+<?php
+
+/**
+ * @file
+ * This module provides a block to display the countdown event module
+ *
+ * Author: Mark Collins
+ */
+
+/**
+ * Implements hook_help().
+ */
+function countdown_event_help($path, $arg) {
+  if ($path == 'admin/help#countdown_event') {
+    // Return content of the module README.txt.
+    return check_markup(file_get_contents(dirname(__FILE__) . "/README.txt"));
+  }
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function countdown_event_block_info() {
+  $blocks = array();
+  $blocks['countdown_event'] = array(
+    'info'  => t('Countdown event'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function countdown_event_block_view($block_name = '') {
+  if ($block_name == 'countdown_event') {
+
+    $block['subject'] = t('Countdown event');
+    $block['content'] = array(
+      '#markup' => theme('countdown_event'),
+      '#attached' => countdown_event_attach(),
+    );
+
+    return $block;
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function countdown_event_theme() {
+  return array(
+    'countdown_event' => array(
+      'template'  => 'countdown_event',
+    ),
+  );
+}
+
+/**
+ * Implements hook_block_configure().
+ */
+function countdown_event_block_configure($delta) {
+  $form = array();
+  switch ($delta) {
+    case 'countdown_event':
+      module_load_include('inc', 'date_api', 'date_api_elements');
+
+      $form['countdown_event_date'] = array(
+
+        '#type' => 'date_select',
+        '#title' => t('Event date'),
+        '#default_value' => variable_get('countdown_event_date', date('Y-m-d G:i:s')),
+        '#date_format' => 'Y-m-d H:i',
+      );
+
+      $form['countdown_event_label_msg'] = array(
+
+        '#type' => 'textfield',
+        '#title' => t('Enter your label message'),
+        '#size' => '37',
+        '#maxLength' => '37',
+        '#default_value' => variable_get('countdown_event_label_msg', ''),
+      );
+
+      $form['countdown_event_label_color'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Enter your label color here in #hex or html name format'),
+        '#size' => '7',
+        '#maxLength' => '7',
+        '#default_value' => variable_get('countdown_event_label_color', ''),
+      );
+
+      $form['countdown_event_background_color'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Enter your background color in #hex or html name format'),
+        '#size' => '7',
+        '#maxLength' => '7',
+        '#default_value' => variable_get('countdown_event_background_color', ''),
+      );
+
+      $form['countdown_event_text_color'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Enter your digit color in #hex or html name format'),
+        '#size' => '7',
+        '#maxLength' => '7',
+        '#default_value' => variable_get('countdown_event_text_color', ''),
+      );
+      break;
+  }
+  return $form;
+}
+
+/**
+ * Implements hook_block_save().
+ */
+function countdown_event_block_save($delta = '', $edit = array()) {
+  switch ($delta) {
+    case 'countdown_event':
+      variable_set('countdown_event_date', $edit['countdown_event_date']);
+      variable_set('countdown_event_label_msg', $edit['countdown_event_label_msg']);
+      variable_set('countdown_event_label_color', $edit['countdown_event_label_color']);
+      variable_set('countdown_event_background_color', $edit['countdown_event_background_color']);
+      variable_set('countdown_event_text_color', $edit['countdown_event_text_color']);
+      break;
+  }
+}
+
+/**
+ * Adds javascript and css to the block.
+ */
+function countdown_event_attach() {
+  $attach = array();
+  $path = drupal_get_path('module', 'countdown_event');
+  $attach['js'] = array(
+    $path . '/countdown_event.js' => array(
+      'type' => 'file',
+      'scope' => 'header',
+    ),
+  );
+  $attach['css'] = array(
+    $path . '/countdown_event.css' => array(
+      'type' => 'file',
+    ),
+  );
+
+  // Add js settings.
+  $settings = array(
+
+    'countdown_event_date' => strtotime(variable_get('countdown_event_date', date('Y-m-d G:i:s'))),
+    'countdown_event_label_msg' => variable_get('countdown_event_label_msg'),
+    'countdown_event_label_color' => variable_get('countdown_event_label_color'),
+    'countdown_event_text_color' => variable_get('countdown_event_text_color'),
+    'countdown_event_background_color' => variable_get('countdown_event_background_color'),
+  );
+
+  $attach['js'][] = array(
+    'data' => array(
+      'countdown_event' => $settings,
+    ),
+    'type' => 'setting',
+  );
+  return $attach;
+
+}

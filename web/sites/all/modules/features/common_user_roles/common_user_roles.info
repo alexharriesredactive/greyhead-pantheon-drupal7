@@ -1,0 +1,16 @@
+name = User Roles
+description = "Provides administrator, client administrator and editor roles for Drupal 7 sites. Sets no permissions."
+core = 7.x
+package = Greyhead Features
+version = 7.x-1.0-20170626
+dependencies[] = adminrole
+dependencies[] = ctools
+dependencies[] = features
+dependencies[] = role_export
+dependencies[] = strongarm
+features[ctools][] = strongarm:strongarm:1
+features[features_api][] = api:2
+features[user_role][] = client administrator
+features[user_role][] = editor
+features[user_role][] = administrator
+project path = sites/all/modules/features

@@ -1,0 +1,6 @@
+# pantheon.yml
+#
+# Pantheon config file for this site.
+api_version: 1
+web_docroot: true
+php_version: 5.6

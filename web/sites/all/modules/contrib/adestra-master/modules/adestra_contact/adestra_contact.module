@@ -1,0 +1,239 @@
+<?php
+
+/**
+ * @file
+ * Adestra Contact module.
+ */
+
+/**
+ * Implements hook_menu().
+ *
+ */
+function adestra_contact_menu() {
+  $items = array();
+
+  $items['admin/config/services/adestra/contact'] = array(
+    'title' => 'Contacts',
+    'description' => 'Manage Adestra contacts.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('variable_module_form', 'adestra_contact'),
+    'access arguments' => array('administer adestra configuration'),
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['admin/config/services/adestra/contact/settings'] = array(
+    'title' => 'Settings',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+  $items['admin/config/services/adestra/contact/view'] = array(
+    'title' => 'View',
+    'description' => 'Manage Adestra contacts',
+    'page callback' => 'adestra_contact_admin_overview',
+    'access arguments' => array('view adestra contacts'),
+    'file' => 'adestra_contact.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['admin/config/people/accounts/adestra'] = array(
+    'title' => 'Adestra Summary',
+    'page callback' => 'adestra_contact_user_field_summary',
+    'access arguments' => array('administer adestra configuration'),
+    'file' => 'adestra_contact.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 3,
+  );
+  $items['user/%user/adestra/admin'] = array(
+    'title' => 'Adestra',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'adestra_contact_administer_contact',
+    'page arguments' => array(1),
+    'access arguments' => array('view adestra contacts'),
+    'file' => 'adestra_contact.admin.inc',
+  );
+  $items['user/%user/adestra/subscriptions'] = array(
+    'title' => 'Subscriptions',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('adestra_contact_subscriptions_form', 1),
+    'access callback' => 'user_edit_access',
+    'access arguments' => array(1),
+    'file' => 'adestra_contact.pages.inc',
+  );
+
+  return $items;
+}
+
+
+/**
+ * Implements hook_admin_paths().
+ */
+function adestra_contact_admin_paths() {
+  $paths = array(
+    'user/*/adestra/admin' => TRUE,
+  );
+  return $paths;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function adestra_contact_permission() {
+  return array(
+    'view adestra contacts' => array(
+      'title' => t('View Adestra contacts'),
+    ),
+    'administer adestra contacts' => array(
+      'title' => t('Administer Adestra contacts'),
+    )
+  );
+}
+
+function adestra_contact_get_adestra_id($account_unchanged, $pair = TRUE) {
+  if (isset($account_unchanged->data['adestra']['id'])) {
+    return $account_unchanged->data['adestra']['id'];
+  }
+  elseif ($pair === TRUE) {
+    $id = adestra_create_contact(NULL, array('email' => $account_unchanged->mail), 'email');
+    $account = adestra_contact_set_adestra_id($account_unchanged, $id);
+    return $id;
+  }
+}
+
+function adestra_contact_set_adestra_id($account, $id) {
+  //Only save account if not new
+  if (!isset($account->is_new)) {
+    return user_save($account, array(
+      'data' => array(
+        'adestra' => array(
+          'id'  => $id
+        ),
+      ),
+    ));
+  }
+}
+
+/**
+ * Implements hook_user_insert().
+ */
+function adestra_contact_user_insert(&$edit, $account, $category) {
+  $id = adestra_create_contact(NULL, array('email' => $account->mail), 'email');
+  if ($id) {
+    adestra_contact_sync($id, $edit, $account, $category);
+    $subscribe_lists = array();
+    $unsubscribe_lists = array();
+    if (is_array($edit['adestra_lists'])) {
+      foreach ($edit['adestra_lists'] as $adestra_list_id => $value) {
+        if ($value == 0) {
+          $unsubscribe_lists[] = $adestra_list_id;
+        }
+        else{
+          $subscribe_lists[] = $adestra_list_id;
+        }
+      }
+    }
+    $subscribe_lists += explode('|', variable_get_value('adestra_contact_lists_register_hidden'));
+    if (!empty($subscribe_lists)) {
+      adestra_subscribe_contact_multiple($id, $subscribe_lists);
+    }
+    if (!empty($unsubscribe_lists)) {
+      adestra_unsubscribe_contact_multiple($id, $unsubscribe_lists);
+    }
+  }
+}
+
+/**
+ * Implements hook_user_update().
+ */
+function adestra_contact_user_update(&$edit, $account, $category) {
+  $id = adestra_contact_get_adestra_id($account, TRUE);
+  if ($id) {
+    adestra_contact_sync($id, $edit, $account, $category);
+  }
+}
+
+function adestra_contact_sync($id, $edit, $account, $category) {
+  $instances = field_info_instances('user', 'user');
+  // loop through all the fields and if they have an adestra attribute
+  // then add them to our attributes array to update adestra
+  foreach ($instances as $field_name => $instance) {
+    if ($instance['settings']['adestra']['attribute_name'] && isset($edit[$field_name][LANGUAGE_NONE][0]['value'])) {
+      $value = $edit[$field_name][LANGUAGE_NONE][0]['value'];
+      $attributes[$instance['settings']['adestra']['attribute_name']] = $value;
+    }
+  }
+  //Set username attribute if one has been set
+  if ($username_attribute = variable_get_value('adestra_contact_attribute_username')) {
+    $attributes[$username_attribute] = $account->name;
+  }
+  //Set uid attribute if one has been set
+  if ($uid_attribute = variable_get_value('adestra_contact_attribute_uid')) {
+    $attributes[$uid_attribute] = $account->uid;
+  }
+  $context = array(
+    'id' => $id,
+    'edit' => $edit,
+    'account' => $account,
+    'category' => $category,
+  );
+
+  adestra_update_contact($id, $attributes);
+}
+
+/*
+ * Implements hook_form_FORM_ID_alter().
+ */
+function adestra_contact_form_user_register_form_alter(&$form, &$form_state, $form_id) {
+  $adestra_contact_lists_register_optional = array_filter(explode("\n", trim(variable_get_value('adestra_contact_lists_register_optional'))));
+  if (!empty($adestra_contact_lists_register_optional)) {
+    $form['adestra_lists'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Your Preferences'),
+      '#collapsible' => TRUE,
+      '#tree' => TRUE,
+      '#weight' => variable_get_value('adestra_contact_lists_register_optional_weight'),
+    );
+    foreach ($adestra_contact_lists_register_optional as $list) {
+      $list_info = explode("|", $list);
+      $form['adestra_lists'][$list_info[0]] = array(
+        '#title' => check_plain($list_info[1]),
+        '#type' => 'checkbox',
+        '#default_value' => in_array($list_info[0], explode("|", variable_get_value('adestra_contact_lists_register_optional_defaults'))),
+        '#return_value' => $list_info[0],
+      );
+    }
+  }
+}
+
+/**
+ * Implements hook_field_info_alter().
+ */
+function adestra_contact_field_info_alter(&$info) {
+  foreach ($info as $field_type => &$field_type_info) {
+  $field_type_info += array('instance_settings' => array());
+    $field_type_info['instance_settings'] += array(
+      'adestra' => array(
+         'attribute_name' => NULL
+      ),
+    );
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function adestra_contact_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
+  $instance = $form['#instance'];
+  if ($instance['entity_type'] == 'user') {
+      $form['instance']['settings']['adestra'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Adestra Integration'),
+        '#tree' => TRUE,
+        '#collapsible' => TRUE,
+        'attribute_name' => array(
+          '#type' => 'textfield',
+          '#title' => t('Attribute Field Name'),
+          '#description' => t("Name of the Adestra field with which to sync. Specify a core-table field by using its name as a key (e.g. 'email'). Specifiy a data-table field by using a key in the format \"<table_id>.<field_name>\", e.g. \"3.survey_response\"."),
+          '#default_value' => (isset($instance['settings']['adestra']['attribute_name']) ? $instance['settings']['adestra']['attribute_name'] : NULL),
+        ),
+      );
+  }
+}

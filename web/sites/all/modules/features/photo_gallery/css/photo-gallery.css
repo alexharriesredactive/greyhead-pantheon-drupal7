@@ -1,0 +1,13 @@
+/* Styles for the Photo Gallery feature. */
+.photo-gallery-image {
+  margin-bottom: 1em;
+  text-align: center;
+}
+
+.photo-gallery-image img.img-responsive {
+  display: inline-block;
+}
+
+.view-photo-galleries .views-row {
+  margin-bottom: 2em;
+}

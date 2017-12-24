@@ -1,0 +1,6 @@
+# pantheon.upstream.yml
+#
+# Pantheon config file for this upstream.
+api_version: 1
+web_docroot: true
+php_version: 5.6

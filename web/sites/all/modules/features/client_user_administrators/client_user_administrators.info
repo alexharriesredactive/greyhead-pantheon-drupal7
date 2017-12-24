@@ -1,0 +1,14 @@
+name = Client User Administrators
+description = Creates a role of Client User Administrator, which can create users and grant access up to client user admin/client admin level.
+core = 7.x
+package = Greyhead Features
+version = 7.x-1.0-20160229
+dependencies[] = features
+dependencies[] = features_roles_permissions
+dependencies[] = common_user_roles
+dependencies[] = role_delegation
+dependencies[] = role_export
+features[features_api][] = api:2
+features[roles_permissions][] = client user administrator
+features[user_role][] = client user administrator
+project path = sites/all/modules/features

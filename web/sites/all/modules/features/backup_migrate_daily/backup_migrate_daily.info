@@ -1,0 +1,16 @@
+name = Backup-Migrate Daily Backups
+description = Provides a daily database backup from Backup-Migrate.
+core = 7.x
+package = Greyhead Features
+version = 7.x-1.0-20150722
+dependencies[] = backup_migrate
+dependencies[] = ctools
+dependencies[] = strongarm
+features[backup_migrate_schedules][] = daily_backups
+features[ctools][] = backup_migrate:backup_migrate_exportables:1
+features[ctools][] = strongarm:strongarm:1
+features[features_api][] = api:2
+features[variable][] = backup_migrate_copy_destination_id
+features[variable][] = backup_migrate_destination_id
+features[variable][] = backup_migrate_profile_id
+features[variable][] = backup_migrate_source_id

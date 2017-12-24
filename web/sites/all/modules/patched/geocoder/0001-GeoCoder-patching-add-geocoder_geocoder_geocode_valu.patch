@@ -1,0 +1,46 @@
+From c4d49e5d85b64978ba6252c1fb9818d3c2e53dc4 Mon Sep 17 00:00:00 2001
+From: Alex Harries <alex@greyhead.co.uk>
+Date: Tue, 23 Feb 2016 18:32:32 +0000
+Subject: [PATCH] GeoCoder patching: add geocoder_geocoder_geocode_values_alter
+ to concatenate an addressfield down into a single value.
+
+Signed-off-by: Alex Harries <alex@greyhead.co.uk>
+---
+ geocoder.module | 24 ++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
+
+diff --git a/geocoder.module b/geocoder.module
+index a3ceba3..5d0bf4c 100644
+--- a/geocoder.module
++++ b/geocoder.module
+@@ -354,3 +354,27 @@ function geocoder_cache_set($geometry, $handler, $data, $options) {
+   $data['geometry'] = $geometry ? $geometry : FALSE;
+   cache_set($cid, $data, 'cache_geocoder', variable_get('geocoder_cache_ttl', CACHE_PERMANENT));
+ }
++
++/**
++ * Implements hook_geocoder_geocode_values_alter.
++ *
++ * @param $source_field_values
++ * @param $field_info
++ * @param $handler_settings
++ * @param $field_instance
++ */
++function geocoder_geocoder_geocode_values_alter(&$source_field_values, $field_info, $handler_settings, $field_instance) {
++  // For address fields, concatenate the address array parts down into a
++  // single value string.
++  if ($field_info['type'] == 'addressfield') {
++    // It's an addressfield. Concatenate the source field values down into a
++    // single value array per item.
++    foreach ($source_field_values as $number => &$source_field_value) {
++      $new_source_field_value = array(
++        'value' => implode(',', $source_field_value),
++      );
++
++      $source_field_value = $new_source_field_value;
++    }
++  }
++}
+--
+2.5.4 (Apple Git-61)
+

@@ -1,0 +1,13 @@
+diff --git a/boolean_formatter.module b/boolean_formatter.module
+index 401fb8f..c69486f 100644
+--- a/boolean_formatter.module
++++ b/boolean_formatter.module
+@@ -11,7 +11,7 @@ function boolean_formatter_display_formats(array $options = array()) {
+     'custom' => array(t('Custom')),
+   );
+   if (isset($options['custom_on']) && isset($options['custom_off'])) {
+-    $formats['custom'] = array($options['custom_on'], $options['custom_off']);
++    $formats['custom'] = array(t($options['custom_on']), t($options['custom_off']));
+   }
+   return $formats;
+ }

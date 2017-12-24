@@ -1,0 +1,165 @@
+<?php
+
+/**
+ * @file
+ * Displays a warning to logged-in users if the current site is not the live site.
+ */
+
+/**
+ * Implements hook_init().
+ *
+ * Checks if CURRENT_ENVIRONMENT is defined. If it is, and it isn't "LIVE", and
+ * a user is logged in, set a Drupal message to alert the user that they are
+ * working on a site which isn't the live site.
+ */
+function greyhead_environment_warning_init() {
+  greyhead_environment_warning_define_constants();
+
+  // Are we on a path without "ajax" in the URL and we're in the wrong
+  // environment, Grommit...
+  if (user_is_logged_in() && !greyhead_environment_warning_is_production()) {
+    if (strpos($_GET['q'], 'ajax') === FALSE) {
+      if (!defined('CURRENT_ENVIRONMENT') || (defined('CURRENT_ENVIRONMENT') && (CURRENT_ENVIRONMENT !== ENVIRONMENT_TYPE_DRUSH))) {
+        // Variable replacements.
+        $variables = [
+          '@ENVIRONMENTTYPE' => (defined('CURRENT_ENVIRONMENT') ? CURRENT_ENVIRONMENT : t('not set')),
+        ];
+
+        $message_html = variable_get('greyhead_environment_warning_message', t(GREYHEAD_ENVIRONMENT_WARNING_DEFAULT_MESSAGE, $variables));
+
+        // If the current user can edit this module's settings, add a convenience
+        // link.
+        if (user_access('administer greyhead environment warning')) {
+          $message_html .= ' (' . l(t('Edit this message'), 'admin/config/system/environment-warning') . ')';
+        }
+
+        drupal_set_message(t($message_html, $variables), 'warning', FALSE);
+
+        // Add CSS to add label to side of page.
+        drupal_add_css(drupal_get_path('module', 'greyhead_environment_warning') . '/css/greyhead-environment-warning.css');
+
+        $inline_css = '
+        body:before {
+          content: "' . t('environment: @ENVIRONMENTTYPE', $variables) . '"
+        }';
+
+        drupal_add_css($inline_css, ['type' => 'inline']);
+      }
+    }
+  }
+}
+
+/**
+ * Check whether the current site is a production site.
+ *
+ * @return bool
+ */
+function greyhead_environment_warning_is_production() {
+  // Return TRUE if either the current environment matches the environment
+  // set in the variable table (which could be any environment), or
+  // the current environment is "live".
+  return (CURRENT_ENVIRONMENT == variable_get('greyhead_environment_warning_live_site', ENVIRONMENT_TYPE_LIVE)
+  || (CURRENT_ENVIRONMENT == ENVIRONMENT_TYPE_LIVE));
+}
+
+/**
+ * Defines constants for this module.
+ */
+function greyhead_environment_warning_define_constants() {
+  defined('ENVIRONMENT_TYPE_LOCAL') || define('ENVIRONMENT_TYPE_LOCAL', 'local');
+  defined('ENVIRONMENT_TYPE_DRUSH') || define('ENVIRONMENT_TYPE_DRUSH', 'Drush');
+  defined('ENVIRONMENT_TYPE_DEV') || define('ENVIRONMENT_TYPE_DEV', 'development');
+  defined('ENVIRONMENT_TYPE_RC') || define('ENVIRONMENT_TYPE_RC', 'release candidate');
+  defined('ENVIRONMENT_TYPE_RA') || define('ENVIRONMENT_TYPE_RA', 'RA');
+  defined('ENVIRONMENT_TYPE_STAGE') || define('ENVIRONMENT_TYPE_STAGE', 'staging');
+  defined('ENVIRONMENT_TYPE_LIVE') || define('ENVIRONMENT_TYPE_LIVE', 'production');
+  defined('ENVIRONMENT_TYPE_UNKNOWN') || define('ENVIRONMENT_TYPE_UNKNOWN', 'unknown');
+  defined('SUBENVIRONMENT_TYPE_MAMP') || define('SUBENVIRONMENT_TYPE_MAMP', 'MAMP');
+  defined('SUBENVIRONMENT_TYPE_ACQUIA') || define('SUBENVIRONMENT_TYPE_ACQUIA', 'Acquia');
+
+  defined('CURRENT_ENVIRONMENT') || define('CURRENT_ENVIRONMENT', ENVIRONMENT_TYPE_UNKNOWN);
+  defined('CURRENT_SUBENVIRONMENT') || define('CURRENT_SUBENVIRONMENT', ENVIRONMENT_TYPE_UNKNOWN);
+
+  define('GREYHEAD_ENVIRONMENT_WARNING_DEFAULT_MESSAGE', "You're viewing a copy of this website which isn't the \"live\" website; any content or settings which you change here may be lost if this site's database is replaced with the database from live (environment type: @ENVIRONMENTTYPE).");
+}
+
+/**
+ * Gets an associative array of the available environment types.
+ *
+ * @return array
+ */
+function greyhead_environment_warning_get_environment_types() {
+  return array(
+    ENVIRONMENT_TYPE_LOCAL => ENVIRONMENT_TYPE_LOCAL,
+    ENVIRONMENT_TYPE_DRUSH => ENVIRONMENT_TYPE_DRUSH,
+    ENVIRONMENT_TYPE_DEV => ENVIRONMENT_TYPE_DEV,
+    ENVIRONMENT_TYPE_RC => ENVIRONMENT_TYPE_RC,
+    ENVIRONMENT_TYPE_STAGE => ENVIRONMENT_TYPE_STAGE,
+    ENVIRONMENT_TYPE_RA => ENVIRONMENT_TYPE_RA,
+    ENVIRONMENT_TYPE_LIVE => ENVIRONMENT_TYPE_LIVE,
+    ENVIRONMENT_TYPE_UNKNOWN => ENVIRONMENT_TYPE_UNKNOWN,
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function greyhead_environment_warning_menu() {
+  $items = array();
+
+  $items['admin/config/system/environment-warning'] = array(
+    'title' => 'Development environment warning settings',
+    'description' => 'Set which type of environment should be considered "live" for this website.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('greyhead_environment_warning_admin'),
+    'access arguments' => array('administer greyhead environment warning'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function greyhead_environment_warning_permission() {
+  return array(
+    'administer greyhead environment warning' => array(
+      'title' => t('Administer Greyhead Environment Warning'),
+      'description' => t('Set which type of environment should be considered "live" for this website.'),
+    ),
+  );
+}
+
+/**
+ * Returns a system settings form.
+ *
+ * @return mixed
+ */
+function greyhead_environment_warning_admin() {
+  $form = array();
+
+  $form['greyhead_environment_warning_current_site'] = array(
+    '#type' => 'item',
+    '#title' => t('Current environment'),
+    '#markup' => t('The current environment type is detected as @type.', array('@type' => CURRENT_ENVIRONMENT)),
+  );
+
+  $form['greyhead_environment_warning_live_site'] = array(
+    '#type' => 'select',
+    '#title' => t('Which environment should be considered live?'),
+    '#description' => t('If you view a copy of this site on a server which isn\'t identified as the live server, a message will be displayed to logged-in users to warn them not to make changes to the database as they may be lost.'),
+    '#default_value' => variable_get('greyhead_environment_warning_live_site', ENVIRONMENT_TYPE_LIVE),
+    '#options' => greyhead_environment_warning_get_environment_types(),
+  );
+
+  $form['greyhead_environment_warning_message'] = array(
+    '#type' => 'textfield',
+    '#title' => t('What message should be shown on non-live sites?'),
+    '#default_value' => variable_get('greyhead_environment_warning_message', GREYHEAD_ENVIRONMENT_WARNING_DEFAULT_MESSAGE),
+    '#description' => t('This is the message which will be shown to logged-in users when they are using a non-live site.'),
+    '#maxlength' => 255,
+  );
+
+  return system_settings_form($form);
+}

@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the Advanced Aggregation settings feature.
+ */
+
+include_once 'advanced_aggregation_settings.features.inc';

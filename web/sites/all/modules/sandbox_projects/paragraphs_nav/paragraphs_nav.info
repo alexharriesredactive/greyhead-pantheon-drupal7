@@ -1,0 +1,9 @@
+name = Paragraphs Navigation
+description = Provides automatically generated in-page navigation blocks for paragraph items.
+package = Paragraphs pack
+core = 7.x
+version = 7.x-1.x
+
+;files[] =
+dependencies[] = field
+dependencies[] = paragraphs

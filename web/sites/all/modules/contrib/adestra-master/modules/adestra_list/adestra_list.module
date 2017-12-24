@@ -1,0 +1,42 @@
+<?php
+
+/**
+ * @file
+ * Adestra List Module.
+ */
+
+/**
+ * Implements hook_menu().
+ *
+ */
+function adestra_list_menu() {
+  $items = array();
+
+  $items['admin/config/services/adestra/list'] = array(
+    'title' => 'Lists',
+    'description' => 'Manage Adestra Lists',
+    'page callback' => 'adestra_list_admin_overview',
+    'access arguments' => array('view adestra lists'),
+    'file' => 'adestra_list.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['admin/config/services/adestra/list/view'] = array(
+    'title' => 'View',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function adestra_list_permission() {
+  return array(
+    'view adestra lists' => array(
+      'title' => t('View Adestra lists'),
+    ),
+  );
+}
+

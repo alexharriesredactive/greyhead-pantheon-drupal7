@@ -1,0 +1,70 @@
+diff --git a/js/lightbox.js b/js/lightbox.js
+index 0f7213f..5c9aa64 100644
+--- a/js/lightbox.js
++++ b/js/lightbox.js
+@@ -191,7 +191,7 @@ Lightbox = {
+     if (Lightbox.alternative_layout) {
+       $('#bottomNavZoom, #bottomNavZoomOut').css({'bottom': Lightbox.borderSize + 'px', 'right': Lightbox.borderSize + 'px'});
+     }
+-    else if (Lightbox.rtl == 1 && $.browser.msie) {
++    else if (Lightbox.rtl == 1 && Drupal.settings.lightbox2.useragent.search('MSIE') !== -1) {
+       $('#bottomNavZoom, #bottomNavZoomOut').css({'left': '0px'});
+     }
+ 
+@@ -517,7 +517,7 @@ Lightbox = {
+         $('#frameContainer').html('<iframe id="lightboxFrame" style="display: none;" src="'+src+'"></iframe>');
+ 
+         // Enable swf support in Gecko browsers.
+-        if ($.browser.mozilla && src.indexOf('.swf') != -1) {
++        if (Drupal.settings.lightbox2.useragent.search('Mozilla') !== -1 && src.indexOf('.swf') != -1) {
+           setTimeout(function () {
+             document.getElementById("lightboxFrame").src = Lightbox.imageArray[Lightbox.activeImage][0];
+           }, 1000);
+@@ -605,7 +605,7 @@ Lightbox = {
+     // If new and old image are same size and no scaling transition is necessary
+     // do a quick pause to prevent image flicker.
+     if ((hDiff === 0) && (wDiff === 0)) {
+-      if ($.browser.msie) {
++      if (Drupal.settings.lightbox2.useragent.search('MSIE') !== -1) {
+         Lightbox.pause(250);
+       }
+       else {
+@@ -629,7 +629,7 @@ Lightbox = {
+       Lightbox.updateDetails();
+       if (Lightbox.isLightframe) {
+         $('#frameContainer').show();
+-        if ($.browser.safari || Lightbox.fadeInSpeed === 0) {
++        if (Drupal.settings.lightbox2.useragent.search('Safari') !== -1 || Lightbox.fadeInSpeed === 0) {
+           $('#lightboxFrame').css({'zIndex': '10500'}).show();
+         }
+         else {
+@@ -660,7 +660,7 @@ Lightbox = {
+     // Handle display of image content.
+     else {
+       $('#imageContainer').show();
+-      if ($.browser.safari || Lightbox.fadeInSpeed === 0) {
++      if (Drupal.settings.lightbox2.useragent.search('Safari') !== -1 || Lightbox.fadeInSpeed === 0) {
+         $('#lightboxImage').css({'zIndex': '10500'}).show();
+       }
+       else {
+@@ -705,7 +705,7 @@ Lightbox = {
+ 
+     // Gecko browsers (e.g. Firefox, SeaMonkey, etc) don't handle pdfs as
+     // expected.
+-    if ($.browser.mozilla) {
++    if (Drupal.settings.lightbox2.useragent.search('Mozilla') !== -1) {
+       if (Lightbox.imageArray[Lightbox.activeImage][0].indexOf(".pdf") != -1) {
+         setTimeout(function () {
+           document.getElementById("lightboxFrame").src = Lightbox.imageArray[Lightbox.activeImage][0];
+diff --git a/lightbox2.module b/lightbox2.module
+index f775bee..ed838cd 100644
+--- a/lightbox2.module
++++ b/lightbox2.module
+@@ -749,6 +749,7 @@ function lightbox2_add_files() {
+     'iframe_border' => (int)variable_get('lightbox2_frame_border', 1),
+     // Video settings.
+     'enable_video' => $enable_video,
++    'useragent' => $_SERVER['HTTP_USER_AGENT'],
+   );
+   if ($enable_video) {
+     $js_settings['flvPlayer'] = url(check_plain(trim(variable_get('lightbox2_flv_player_path', 'flvplayer.swf'), '/')));

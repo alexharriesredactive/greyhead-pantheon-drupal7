@@ -1,0 +1,6 @@
+name = Greyhead Environment Warning
+description = Displays a warning if the current site is not the live site. This module will only run when your Drupal setup uses Greyhead Site Configuration.
+core = 7.x
+version = "7.x-1.0-20170929"
+
+project = Greyhead

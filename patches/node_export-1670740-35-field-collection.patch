@@ -1,0 +1,165 @@
+diff --git a/modules/node_export_dependency/node_export_dependency.core.inc b/modules/node_export_dependency/node_export_dependency.core.inc
+index 41d3f9d..330ccb6 100644
+--- a/modules/node_export_dependency/node_export_dependency.core.inc
++++ b/modules/node_export_dependency/node_export_dependency.core.inc
+@@ -217,6 +217,19 @@ function entityreference_node_export_dependency_field($entity_type, $entity, $fi
+ function field_collection_node_export_dependency_field($entity_type, $entity, $field, $instance, $langcode, $items) {
+   $dependencies = array();
+   node_export_dependency_add($dependencies, $items, 'field_collection_item', 'value');
++
++  // Loop all items to add their data for export.
++  foreach($items as $index => $item) {
++    if ($field_collection_item = field_collection_item_load($item['value'])) {
++      // Add the field collection item data to the exported data. Mimics
++      // EntityAPIController::export() without the JSON conversion.
++      $dependencies[$index]['node_export_field_collection_data']
++        = get_object_vars($field_collection_item);
++      // Support nested fields & field collections too.
++      $dependencies = array_merge($dependencies, field_node_export_dependency($field_collection_item, 'field_collection_item'));
++    }
++  }
++
+   return $dependencies;
+ }
+ 
+diff --git a/modules/node_export_dependency/node_export_dependency.module b/modules/node_export_dependency/node_export_dependency.module
+index 4b3e0a0..6a027e3 100644
+--- a/modules/node_export_dependency/node_export_dependency.module
++++ b/modules/node_export_dependency/node_export_dependency.module
+@@ -257,10 +257,25 @@ function node_export_dependency_init() {
+ }
+ 
+ /**
+- *  Attempt to handle a dependency.
++ * Attempt to handle a dependency.
+  *
+- *  @return
+- *    TRUE or FALSE whether the dependency was handled.
++ * Handles field collection items excluding file/image fields (not supported
++ * yet) and adds the data to the given node.
++ *
++ * Passes all dependencies to hook_node_export_dependency_alter() for external
++ * handling.
++ *
++ * @param $node
++ *   Node object before importing it.
++ * @param $dependency
++ *   Associative array with data for the given dependency as exported under the
++ *   'node_export_dependency' key.
++ *
++ * @return
++ *   TRUE or FALSE whether the dependency was handled.
++ *
++ * @todo
++ *   Implement file/image field handling for field collection items.
+  */
+ function node_export_dependency_handle_dependency(&$node, $dependency) {
+   $handled = FALSE;
+@@ -269,6 +284,107 @@ function node_export_dependency_handle_dependency(&$node, $dependency) {
+     // We're not handling it, so it is 'handled'.
+     return TRUE;
+   }
++
++  // Handle exported field collection items.
++  if ($dependency['type'] == 'field_collection_item' &&
++      isset($dependency['node_export_field_collection_data'])) {
++    $entity_controller = new EntityAPIController("field_collection_item");
++    $field_collection_item = $entity_controller
++      ->create($dependency['node_export_field_collection_data']);
++
++    // The import of file/image field data is not yet supported. Thus we need
++    // to remove any file data from the field collection item's fields to avoid
++    // errors about non-existent files during import.
++
++    $supported_file_fields = array_map('trim', explode(',',
++      variable_get('node_export_file_supported_fields', 'file, image')));
++
++    // Gather information about the field collection item's individual fields.
++    $field_info = field_info_instances('field_collection_item',
++      $dependency['field_name']);
++
++    // Loop all fields to remove possibly contained file data.
++    foreach ($field_info as $field_name => $info) {
++      // If this is some file field.
++      if (in_array($info['widget']['module'], $supported_file_fields) && is_array($field_collection_item->{$field_name})) {
++
++        // Import the files, similar to node_export_file_field_import().
++        foreach ($field_collection_item->{$field_name} as $language => $files) {
++          if (is_array($files)) {
++            foreach ($files as $i => $field_value) {
++
++              $file = (object) $field_value;
++
++              $result = _node_export_file_field_import_file($file);
++
++              // The file was saved successfully, update the file field (by reference).
++              if ($result == TRUE && isset($file->fid)) {
++                // Retain any special properties from the original field value.
++                $field_collection_item->{$field_name}[$language][$i] = array_merge($field_value, (array) $file);
++              }
++
++            }
++          }
++        }
++      }
++    }
++
++    // Get the nid of the host node in the target system, if it already exits.
++    $nid = db_query('SELECT nid FROM {node} WHERE uuid = :uuid',
++      array(':uuid' => $node->uuid))->fetchField();
++
++    if ($nid) {
++      // Find the field collection item's current ID if it already exists.
++      $item_id = db_query('
++        SELECT d.' . $dependency['field_name'] . '_value
++        FROM {field_data_' . $dependency['field_name'] . '} d
++        INNER JOIN {field_collection_item} ci ON
++          ci.item_id = d.' . $dependency['field_name'] . '_value
++          AND ci.revision_id = d.' . $dependency['field_name'] . '_revision_id
++        WHERE d.entity_id = :nid AND d.delta = :delta
++        AND ci.field_name = :field_name',
++        array(':nid' => $nid, ':delta' => $dependency['delta'], ':field_name' =>  $dependency['field_name']))->fetchField();
++
++      $field_collection_item->item_id = $item_id ? $item_id : NULL;
++    }
++    else {
++      $field_collection_item->item_id = NULL;
++    }
++
++    if ($field_collection_item->item_id) {
++      // The item already exists in the DB, so we need its uuid and revision_id
++      // to overwrite exactly the existing one with the new data.
++      $data = db_query('
++          SELECT revision_id, uuid
++          FROM {field_collection_item}
++          WHERE item_id = :item_id',
++        array(':item_id' => $field_collection_item->item_id))->fetchAssoc();
++
++      $field_collection_item->uuid = $data['uuid'];
++      $field_collection_item->revision_id = $data['revision_id'];
++
++      // Property is not needed.
++      if (property_exists($field_collection_item, 'is_new')) {
++        unset($field_collection_item->is_new);
++      }
++    }
++    // If there is no item_id, i.e. this is a new field collection item.
++    else {
++      $field_collection_item->is_new = TRUE;
++      $field_collection_item->revision_id = NULL;
++
++      // Remove the old uuid, a new one will be created.
++      unset($field_collection_item->uuid);
++    }
++
++    // Add the field collection item data to the node where node_save() expects
++    // it. It will save the new data later.
++    $node->{$dependency['field_name']}[$dependency['langcode']]
++      [$dependency['delta']]['entity'] = $field_collection_item;
++
++    $handled = TRUE;
++  }
++
+   if (!isset($dependency['relationship'])) {
+     // Entity id.
+     $entity_ids = entity_get_id_by_uuid($dependency['type'], array($dependency['uuid']));

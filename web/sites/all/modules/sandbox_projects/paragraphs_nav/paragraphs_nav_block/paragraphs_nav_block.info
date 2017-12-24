@@ -1,0 +1,7 @@
+name = Paragraphs Navigation Block
+description = Renders Paragraphs Navigation using block system. (Field instance level settings.)
+core = 7.x
+package = Paragraphs pack
+
+dependencies[] = block
+dependencies[] = paragraphs_nav

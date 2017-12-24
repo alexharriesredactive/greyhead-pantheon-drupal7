@@ -1,0 +1,27 @@
+diff --git a/commerce_pricing_attributes.module b/commerce_pricing_attributes.module
+index d7b979e..d9b906b 100644
+--- a/commerce_pricing_attributes.module
++++ b/commerce_pricing_attributes.module
+@@ -929,7 +929,10 @@ function commerce_pricing_attributes_add_to_cart_submit($form, $form_state){
+   elseif (isset($form_state['products'])) {
+     $current_product = reset($form_state['products']);
+   }
+-  else {
++  elseif (empty($form_state['default_product']) && !empty($form_state['default_product_id'])){
++    $current_product = commerce_product_load($form_state['default_product_id']);
++  }
++  if (empty($current_product)) {
+     return;
+   }
+ 
+@@ -1157,6 +1160,10 @@ function commerce_pricing_attributes_field_attach_form($entity_type, $entity, &$
+ function commerce_pricing_attributes_add_to_cart_form_attributes_refresh($form, $form_state){
+   $commands = array();
+ 
++  if(empty($form_state['default_product']) && !empty($form_state['default_product_id'])){
++    $form_state['default_product'] = commerce_product_load($form_state['default_product_id']);
++  }
++
+   if(!empty($form_state['default_product']) and !empty($form_state['context'])){
+     $product = $form_state['default_product'];
+ 

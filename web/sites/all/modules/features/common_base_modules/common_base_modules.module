@@ -1,0 +1,91 @@
+<?php
+/**
+ * @file
+ * Code for the Base Modules feature.
+ */
+
+include_once 'common_base_modules.features.inc';
+
+/**
+ * Implements hook_init().
+ */
+function common_base_modules_init() {
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function common_base_modules_form_alter(&$form, &$form_state, $form_id) {
+  // On the Maillog settings form, disable the "allow e-mails to be sent",
+  // "Create table entries in maillog table for each e-mail" and "Display the
+  // e-mails on page using devel module (if enabled)" checkboxes - they will be
+  // pre-set in /configuration/[environment].settings.php.
+  if ($form_id == 'maillog_admin_settings') {
+    $form['disabled_info'] = [
+      '#type' => 'markup',
+      '#markup' => '
+        <div class="messages warning">
+          <h3>' . t("What's going on here?") . '</h3>
+          <p>' . t('The options on this page have been disabled as they are configured automagically for your server environment; e-mails will not be sent in local, development, and staging server environments.') . '</p>
+          <p>' . t('You can check which environment this instance of this website is set to on the !greyhead_environment_settings_page_link.', ['!greyhead_environment_settings_page_link' => l(t('development environment warning settings page'), 'admin/config/system/environment-warning/')]) . '</p>
+        </div>',
+      '#weight' => -1,
+    ];
+
+    $form['maillog_send']['#disabled'] = TRUE;
+    $form['maillog_send']['#value'] = $form['maillog_send']['#default_value'];
+
+    $form['maillog_log']['#disabled'] = TRUE;
+    $form['maillog_log']['#value'] = $form['maillog_log']['#default_value'];
+
+    $form['maillog_devel']['#disabled'] = TRUE;
+    $form['maillog_devel']['#value'] = $form['maillog_devel']['#default_value'];
+  }
+
+  // In local environments, disable CAPTCHA.
+  if (defined('CURRENT_ENVIRONMENT') && defined('ENVIRONMENT_TYPE_LOCAL') && (CURRENT_ENVIRONMENT == ENVIRONMENT_TYPE_LOCAL)) {
+    _common_base_modules_unset_captcha($form);
+  }
+}
+
+/**
+ * Recurse through a form's elements, removing any CAPTCHA fields.
+ *
+ * @param $form
+ */
+function _common_base_modules_unset_captcha(&$form) {
+  foreach (element_children($form) as $child_element) {
+    if (!empty($form[$child_element]['#type']) && ($form[$child_element]['#type'] == 'captcha')) {
+      // It's a CAPTCHA. Replace it with some help text.
+      $form[$child_element] = [
+        '#markup' => '<strong>' . t('The CAPTCHA challenge has been disabled because this is a local development environment.') . '</strong>',
+      ];
+    }
+    else {
+      _common_base_modules_unset_captcha($form[$child_element]);
+    }
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter.
+ *
+ * Move the Greyhead Customisations module to run last, mainly for form-altering
+ * goodness.
+ *
+ * @param $implementations
+ * @param $hook
+ */
+function common_base_modules_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'form_alter') {
+    // Move all hooks for this module to the end of the list. module_implements()
+    // iterates through $implementations with a foreach loop which PHP iterates
+    // in the order that the items were added, so to move an item to the end of
+    // the array, we remove it and then add it.
+    if (array_key_exists('common_base_modules', $implementations)) {
+      $group = $implementations['common_base_modules'];
+      unset($implementations['common_base_moduless']);
+      $implementations['common_base_modules'] = $group;
+    }
+  }
+}

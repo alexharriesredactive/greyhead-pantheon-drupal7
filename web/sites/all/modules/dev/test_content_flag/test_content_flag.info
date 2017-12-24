@@ -1,0 +1,18 @@
+name = "Test Content Flag"
+package = "Development"
+core = "7.x"
+project = "test_content_flag"
+description = "Allows content to be flagged as test content without having to add fields manually to all your content types and then remove them"
+
+dependencies[] = "views"
+dependencies[] = "views_bulk_operations"
+description = "Test Content view"
+features[ctools][] = "views:views_default:3.0"
+features[views_view][] = "test_content_nodes"
+
+; Information added by drupal.org packaging script on 2013-10-19
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "test_content_flag"
+datestamp = "1382146797"
+

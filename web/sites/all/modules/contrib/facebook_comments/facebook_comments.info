@@ -1,0 +1,11 @@
+name = Facebook comments
+description = Enable Facebook comments on nodes
+core = 7.x
+configure = admin/config/content/facebook-comments
+
+; Information added by Drupal.org packaging script on 2017-01-22
+version = "7.x-1.0"
+core = "7.x"
+project = "facebook_comments"
+datestamp = "1485074585"
+

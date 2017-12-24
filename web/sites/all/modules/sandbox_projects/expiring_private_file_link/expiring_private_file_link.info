@@ -1,0 +1,7 @@
+; $Id: expiring_private_file_link.info 1770 2012-05-03 17:28:25Z kevin $
+name = Expiring Private File Link
+description = Provides Private Link field formatter for file fields
+core = 7.x
+package = Energy Web Design (energywebdevelopment.com)
+dependencies[] = file_entity
+configure = admin/config/system/expiring_private_file_link

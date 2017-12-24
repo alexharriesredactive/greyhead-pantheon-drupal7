@@ -1,0 +1,108 @@
+// Style definitions for a 5-column grid.
+//
+// @see/@stolen-from:
+// http://www.wearesicc.com/quick-tips-5-column-layout-with-twitter-bootstrap/
+
+// Create default columns.
+.col5-xs-1, .col5-xs-2, .col5-xs-3, .col5-xs-4, .col5-xs-5,
+.col5-sm-1, .col5-sm-2, .col5-sm-3, .col5-sm-4, .col5-sm-5,
+.col5-md-1, .col5-md-2, .col5-md-3, .col5-md-4, .col5-md-5,
+.col5-lg-1, .col5-lg-2, .col5-lg-3, .col5-lg-4, .col5-lg-5 {
+  position: relative;
+  min-height: 1px;
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+// Define widths of new columns for various meeja queries.
+.columnise(@totalcolumns, @thisstylecolumns) {
+  width: 100% * (@thisstylecolumns / @totalcolumns);
+  float: left;
+}
+
+.col5-xs-1 {
+  .columnise(5, 1);
+}
+
+.col5-xs-2 {
+  .columnise(5, 2);
+}
+
+.col5-xs-3 {
+  .columnise(5, 3);
+}
+
+.col5-xs-4 {
+  .columnise(5, 4);
+}
+
+.col5-xs-5 {
+  .columnise(5, 5);
+}
+
+@media (min-width: @screen-sm-min) {
+  .col5-sm-1 {
+    .columnise(5, 1);
+  }
+
+  .col5-sm-2 {
+    .columnise(5, 2);
+  }
+
+  .col5-sm-3 {
+    .columnise(5, 3);
+  }
+
+  .col5-sm-4 {
+    .columnise(5, 4);
+  }
+
+  .col5-sm-5 {
+    .columnise(5, 5);
+  }
+}
+
+@media (min-width: @screen-md-min) {
+  .col5-md-1 {
+    .columnise(5, 1);
+  }
+
+  .col5-md-2 {
+    .columnise(5, 2);
+  }
+
+  .col5-md-3 {
+    .columnise(5, 3);
+  }
+
+  .col5-md-4 {
+    .columnise(5, 4);
+  }
+
+  .col5-md-5 {
+    .columnise(5, 5);
+  }
+}
+
+@media (min-width: @screen-lg-min) {
+  .col5-lg-1 {
+    .columnise(5, 1);
+  }
+
+  .col5-lg-2 {
+    .columnise(5, 2);
+  }
+
+  .col5-lg-3 {
+    .columnise(5, 3);
+  }
+
+  .col5-lg-4 {
+    .columnise(5, 4);
+  }
+
+  .col5-lg-5 {
+    .columnise(5, 5);
+  }
+}
+

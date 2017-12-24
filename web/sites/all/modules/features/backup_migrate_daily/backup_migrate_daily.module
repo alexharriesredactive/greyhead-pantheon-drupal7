@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the Backup-Migrate Daily Backups feature.
+ */
+
+include_once 'backup_migrate_daily.features.inc';

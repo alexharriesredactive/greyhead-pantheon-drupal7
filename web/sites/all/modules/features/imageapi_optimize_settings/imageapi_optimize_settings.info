@@ -1,0 +1,14 @@
+name = ImageAPI Optimize Settings
+description = Provides the configuration settings for the ImageAPI Optimize module.
+core = 7.x
+package = Greyhead Features
+version = 7.x-1.0-20170717
+dependencies[] = features
+dependencies[] = imageapi_optimize
+features[ctools][] = strongarm:strongarm:1
+features[features_api][] = api:2
+features[variable][] = image_jpeg_quality
+features[variable][] = image_toolkit
+features_exclude[dependencies][ctools] = ctools
+features_exclude[dependencies][strongarm] = strongarm
+project path = sites/all/modules/_features

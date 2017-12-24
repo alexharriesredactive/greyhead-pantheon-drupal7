@@ -1,0 +1,13 @@
+diff --git a/workbench_email.module b/workbench_email.module
+index c83f5bd..00e6da0 100644
+--- a/workbench_email.module
++++ b/workbench_email.module
+@@ -588,7 +588,7 @@ function workbench_email_get_user_roles($uid) {
+  *   The role object
+  */
+ function workbench_email_get_role_by_name($role_name) {
+-  if ($role_name == 'author') {
++  if ($role_name == 'author' || $role_name == 'original author') {
+     $role = workbench_email_get_author_role();
+   }
+   else {

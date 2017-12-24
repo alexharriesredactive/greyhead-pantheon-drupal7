@@ -1,0 +1,27 @@
+<?php
+/**
+ * @file
+ * Install schema for the field_group_titles module.
+ */
+
+/**
+ * Implements hook_field_schema().
+ *
+ * Defines the schema for the field used to override the
+ * default title of a Field Group item.
+ */
+function field_group_titles_field_schema($field) {
+  $columns = array(
+    'title_override' => array(
+      'type' => 'varchar',
+      'length' => 100,
+      'not null' => FALSE),
+  );
+  $indexes = array(
+    'title_override' => array('title_override'),
+  );
+  return array(
+    'columns' => $columns,
+    'indexes' => $indexes,
+  );
+}

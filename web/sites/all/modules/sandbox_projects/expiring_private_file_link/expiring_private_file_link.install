@@ -1,0 +1,62 @@
+<?php
+// $Id: expiring_private_file_link.install 1778 2012-05-03 18:01:51Z kevin $!
+/**
+ * @file
+ * Install, update and uninstall functions for the
+ * expiring_private_file_link module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function expiring_private_file_link_schema() {
+  $schema['expiring_private_file_link'] = array(
+    'description' => "Holds hashes and uri's for private links",
+    'fields' => array(
+      'plid' => array(
+        'description' => 'Private Link unique ID',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'hash' => array(
+        'description' => 'generated hash for link',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'uri' => array(
+        'description' => 'drupal uri to the file',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'session' => array(
+        'description' => 'session id this link was created for',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'expire' => array(
+        'description' => 'unix timestamp when this link will expire',
+        'type' => 'int',
+        'length' => 11,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('plid'),
+    'indexes' => array(
+      'expiring_private_file_link_expire' => array('expire'),
+      'expiring_private_file_link_session' => array('session'),
+      'expiring_private_file_link_session_hash' => array('session', 'hash'),
+    ),
+    'unique_keys' => array(
+      'uri_session' => array('uri', 'session'),
+    ),
+  );
+  return $schema;
+}

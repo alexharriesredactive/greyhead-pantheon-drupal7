@@ -1,0 +1,195 @@
+<?php
+
+
+/**
+* Implements hook_menu().
+*/
+function acton_menu() {
+  $items['admin/config/services/act-on'] = array(
+  'title' => 'Act-On configuration',
+  'description' => 'Configure Act-On and the forms on which Act-On will be used.',
+  'page callback' => 'drupal_get_form',
+  'page arguments' => array('acton_admin_form'),
+  'access arguments' => array('administer acton'),
+  'file' => 'acton.admin.inc',
+  );
+
+  return $items;
+}
+
+
+/**
+ * Implements hook_permission().
+ */
+function acton_permission() {
+  return array(
+    'administer acton' => array(
+      'title' => t('Administer Act-On'),
+      'description' => t('Administer Act-On forms and settings'),
+    ),
+  );
+}
+
+
+/**
+ * Implements hook_form_alter().
+ *
+ * Add Act-On submit-hook to Act-On enabled forms.
+ */
+function acton_form_alter(&$form, &$form_state, $form_id) {
+
+  // Don't use for maintenance mode forms (install, update, etc.).
+  if (defined('MAINTENANCE_MODE')) {
+    return;
+  }
+
+  if ($form_id == 'webform_component_edit_form') {
+    $form['act-on-name'] = array(
+      '#type'           => 'textfield',
+      '#title'          => t('Act-On Mapping'),
+      '#description'    => t('This field will map to the name field of the Act-On form input, if left blank, the Field Key will be used.'),
+      '#weight'         => -3,
+      '#name'           => 'act-on-name',
+      '#default_value'  => acton_webform_component_get_mapped_name(
+        $form['nid']['#value'], 
+        $form['form_key']['#default_value']
+      ),
+    );
+    $form['#submit'][] = 'action_webform_component_edit_submit';
+  }
+
+}
+
+/**
+ * Implements hook_webform_submission_inser().
+ */
+function acton_webform_submission_insert($node, $submission) {
+  // get all the post urls the node is associated to
+  $acton_connection = new ActonConnection();
+  $post_urls = acton_get_webform_post_urls($node->nid);
+  $post_data = array();
+
+  // format post data
+  if (count($post_urls)) {
+    if (!empty($node->webform['components'])) {
+      $fields = $node->webform['components'];
+      $data = $submission->data;
+      // map the submission data to the form 'name' components
+      for($i = 1; $i <= count($fields); $i++) {
+        // use the mapped name if it exists as act on form name value
+        $mapped_name = acton_webform_component_get_mapped_name($fields[$i]['nid'], $fields[$i]['form_key']);
+        if (!empty($mapped_name)) {
+          $acton_connection->setPostItems($mapped_name, filter_xss($data[$i][0]));
+        }
+        // otherwise use form_key as act on form name value
+        else {
+          $acton_connection->setPostItems($fields[$i]['form_key'], filter_xss($data[$i][0]));
+        }
+      }
+    }
+    // loop each post url for this webform, and post to the post urls
+    foreach($post_urls as $post_url) {
+      $acton_connection->processConnection($post_url['url']);
+    }
+  }
+}
+
+/**
+ * action_webform_component_get_mapped_name().
+ * @description 
+ *  gets the mapped name for a form component, based on the
+ *  form_key.
+ * @param String $nid
+ * @param String $form_key
+ * @return String
+ */
+function acton_webform_component_get_mapped_name($nid, $form_key='') {
+  $data = db_select('acton_post_mapping', 'pm')
+    ->fields('pm')
+    ->condition('nid', $nid, '=')
+    ->condition('form_key', $form_key, '=')
+    ->execute() 
+    ->fetchAssoc();
+
+  if($data && isset($data['mapped_name'])) {
+    return $data['mapped_name'];
+  }
+
+  return '';
+}
+
+/**
+ * Implements hook_form_submit().
+ * @description
+ *  update the mapped value for Act-On
+ * @param &$form
+ * @param &$form_state
+ */
+function action_webform_component_edit_submit(&$form, &$form_state) {
+  $nid          = $form_state['values']['nid'];
+  $mapped_name  = $form_state['values']['act-on-name'];
+  $form_key     = $form_state['values']['form_key'];
+
+
+  if (!empty($mapped_name)) {
+    db_merge('acton_post_mapping')
+      ->key(array('nid' => $nid, 'form_key' => $form_key))
+      ->fields(array(
+        'nid'         => $nid,
+        'form_key'    => $form_key,
+        'mapped_name' => $mapped_name
+      ))
+      ->execute();
+  }
+  else {
+    db_delete('acton_post_mapping')
+      ->condition('nid', $nid, '=')
+      ->condition('form_key', $form_key, '=')
+      ->execute();
+  }
+}
+
+
+/**
+ * acton_get_webform_post_id().
+ * @description
+ *  get Post URL items for specified webform by webform nid
+ * @param String $nid
+ * @return Array
+ */
+function acton_get_webform_post_urls($nid) {
+  $urls = array();
+  $data = db_select('acton_drupal_webforms', 'wf')
+  ->fields('wf')
+  ->condition('nid', $nid, '=')
+  ->execute()
+  ->fetchAll();
+
+  foreach($data as $webform) {
+    $url_id = $webform->url_id;
+    $data = db_select('acton_post_url', 'wf')
+      ->fields('wf')
+      ->condition('id', $webform->url_id, '=')
+      ->execute()
+      ->fetchAssoc();
+    $urls[] = $data;
+  }
+
+  return $urls;
+}
+
+/**
+ * Implements hook_node_delete().
+ * @description
+ *  cleans up any post mappings for a deleted webform
+ */
+function acton_node_delete($node) {
+
+  if ($node->type == 'webform') {
+    db_delete('acton_post_mapping')
+      ->condition('nid', $node->nid, '=')
+      ->execute();
+  }
+
+}
+

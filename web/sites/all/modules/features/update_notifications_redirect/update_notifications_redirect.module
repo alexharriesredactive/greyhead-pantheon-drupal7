@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the Update Notification E-mails Override feature.
+ */
+
+include_once 'update_notifications_redirect.features.inc';

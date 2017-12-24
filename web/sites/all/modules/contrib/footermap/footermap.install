@@ -1,0 +1,26 @@
+<?php
+/**
+* @file
+* Footermap install file.
+*/
+
+/**
+ * Implements hook_uninstall().
+ */
+function footermap_uninstall() {
+  // Deleting all variables created by footermap module.
+  variable_del('recurse_limit');
+  variable_del('footermap_heading');
+  variable_del('top_menu');
+  variable_del('avail_menus');
+  variable_del('sys_menus');
+}
+
+/**
+ * 7100: Clear theme registry cache.
+ */
+function footermap_update_7100() {
+  cache_clear_all('theme_registry', 'cache', '*');
+  cache_clear_all('footermap', 'cache', '*');
+  return t('Cleared theme registry and footermap cache.');
+}

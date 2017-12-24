@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the Login Toboggan Settings feature.
+ */
+
+include_once 'login_toboggan_settings.features.inc';

@@ -1,0 +1,20 @@
+/**
+ * @file
+ * greyhead-customisations.css
+ *
+ * This file is added to all pages, everywhere on the site, including
+ * admin pages.
+ */
+
+/* Prevent form-items' "white-space: nowrap" form breaking paragraph page
+   widths. */
+body tr.odd .form-item,
+body tr.even .form-item {
+  white-space: normal;
+}
+
+/* Don't let images explode outside their containers. */
+img {
+  max-width: 100%;
+  height: auto;
+}

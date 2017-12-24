@@ -1,0 +1,10 @@
+name = Greyhead Encrypted Field
+description = "Provides a field for the storage of sensitive data in encrypted form. Only users with permission to decrypt the field - which can be set at node level as well as as a general permission - can view the decrypted field value."
+package = "Greyhead Customisations"
+core = 7.x
+dependencies[] = encrypt
+dependencies[] = field
+dependencies[] = greyhead_customisations
+version = "7.x-1.x-dev"
+project = "greyhead_encrypted_field"
+

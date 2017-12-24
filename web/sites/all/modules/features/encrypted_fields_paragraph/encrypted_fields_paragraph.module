@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the Encrypted Fields Paragraph feature.
+ */
+
+include_once 'encrypted_fields_paragraph.features.inc';

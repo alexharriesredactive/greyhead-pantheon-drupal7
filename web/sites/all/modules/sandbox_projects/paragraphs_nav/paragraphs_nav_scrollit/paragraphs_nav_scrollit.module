@@ -1,0 +1,125 @@
+<?php
+/**
+ * @file
+ * Loads library, create settings page and safe values to variables.
+ */
+
+/**
+ * Implements hook_libraries_info().
+ *
+ * We prepare the library first.
+ */
+function paragraphs_nav_scrollit_libraries_info() {
+  // Expected to be extracted into 'sites/all/libraries/scrollit'.
+  $libraries['scrollit'] = array(
+    'name' => 'scrollit',
+    'vendor url' => 'http://www.bytemuse.com/scrollIt.js/',
+    'download url' => 'https://github.com/cmpolis/scrollIt.js',
+    'version callback' => 'paragraphs_nav_scrollit_version_callback',
+    'files' => array(
+      // This can be a path to the file location like array('lib/simple.js').
+      'js' => array('scrollIt.min.js'),
+    ),
+  );
+
+  return $libraries;
+}
+
+/**
+ * Implements version_callback.
+ *
+ * We don't need to check for version, so returning TRUE every time.
+ */
+function paragraphs_nav_scrollit_version_callback() {
+  return TRUE;
+}
+
+/**
+ * Implements hook_permissions().
+ */
+function paragraphs_nav_scrollit_permission() {
+  return array(
+    'access paragraphs nav scrollit configuration' => array(
+      'title' => t('Administer Paragraph Nav Scrollit configuration'),
+      'description' => t('Allow users to change Paragraph Nav Scrollit configuration'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function paragraphs_nav_scrollit_menu() {
+  $items = array();
+  $items['admin/config/user-interface/paragraphs-nav-scrollit'] = array(
+    'title' => 'Paragraphs Nav ScrollIt settings',
+    'description' => 'Settings for Paragraphs Nav ScrollIt',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('paragraphs_nav_scrollit_form'),
+    'access arguments' => array('access paragraphs nav scrollit configuration'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'paragraphs_nav_scrollit.admin.inc',
+    'file path' => drupal_get_path('module', 'paragraphs_nav_scrollit'),
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_block_view_alter().
+ */
+function paragraphs_nav_scrollit_block_view_alter(&$data, $block) {
+  // Add JS/CSS to all paragraphs_nav blocks.
+  if ($block->module == 'paragraphs_nav_block') {
+    // We have nothing to do when there is no navigation.
+    if (empty($data['content'])) {
+      return;
+    }
+
+    $paragraphs_nav_scrollit = array();
+    $navs = paragraphs_nav_block_find_nav_blocks();
+    $paragraphs_nav_scrollit['paragraphs_nav_scrollit']['paragraphs_nav_scrollit_delta'] = $navs;
+
+    $paragraphs_nav_scrollit_upkey = variable_get('paragraphs_nav_scrollit_upkey', NULL);
+    $paragraphs_nav_scrollit_downkey = variable_get('paragraphs_nav_scrollit_downkey', NULL);
+    $paragraphs_nav_scrollit_easing = variable_get('paragraphs_nav_scrollit_easing', NULL);
+    $paragraphs_nav_scrollit_scrolltime = variable_get('paragraphs_nav_scrollit_scrolltime', NULL);
+    $paragraphs_nav_scrollit_activeclass = variable_get('paragraphs_nav_scrollit_activeclass', NULL);
+    $paragraphs_nav_scrollit_topoffset = variable_get('paragraphs_nav_scrollit_topoffset', NULL);
+    $paragraphs_nav_scrollit_onpagechange = variable_get('paragraphs_nav_scrollit_onpagechange', NULL);
+
+    if (!empty($paragraphs_nav_scrollit_upkey)) {
+      $paragraphs_nav_scrollit['paragraphs_nav_scrollit']['upKey'] = (int) $paragraphs_nav_scrollit_upkey;
+    }
+    if (!empty($paragraphs_nav_scrollit_downkey)) {
+      $paragraphs_nav_scrollit['paragraphs_nav_scrollit']['downKey'] = (int) $paragraphs_nav_scrollit_downkey;
+    }
+    if (!empty($paragraphs_nav_scrollit_easing)) {
+      $paragraphs_nav_scrollit['paragraphs_nav_scrollit']['easing'] = $paragraphs_nav_scrollit_easing;
+    }
+    if (!empty($paragraphs_nav_scrollit_scrolltime)) {
+      $paragraphs_nav_scrollit['paragraphs_nav_scrollit']['scrollTime'] = (int) $paragraphs_nav_scrollit_scrolltime;
+    }
+    if (!empty($paragraphs_nav_scrollit_activeclass)) {
+      $paragraphs_nav_scrollit['paragraphs_nav_scrollit']['activeClass'] = $paragraphs_nav_scrollit_activeclass;
+    }
+    if (!empty($paragraphs_nav_scrollit_topoffset)) {
+      $paragraphs_nav_scrollit['paragraphs_nav_scrollit']['topOffset'] = (int) $paragraphs_nav_scrollit_topoffset;
+    }
+    if (!empty($paragraphs_nav_scrollit_onpagechange)) {
+      $paragraphs_nav_scrollit['paragraphs_nav_scrollit']['onPageChange'] = (int) $paragraphs_nav_scrollit_onpagechange;
+    }
+
+    // Loads scrollit library.
+    libraries_load('scrollit');
+
+    // Make sure we have an array.
+    if (is_string($data['content'])) {
+      $data['content'] = array('#markup' => $data['content']);
+    }
+    $data['content']['#attached']['js'][] = drupal_get_path('module', 'paragraphs_nav_scrollit') . '/paragraphs_nav_scrollit.js';
+    $data['content']['#attached']['js'][] = array(
+      'data' => $paragraphs_nav_scrollit,
+      'type' => 'setting',
+    );
+  }
+}

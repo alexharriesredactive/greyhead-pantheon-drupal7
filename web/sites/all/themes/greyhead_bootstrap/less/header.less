@@ -1,0 +1,390 @@
+// Header styling.
+.navbar-header {
+  a,
+  .navbar-nav > .active > a,
+  .navbar-nav > .active > a:hover,
+  .navbar-nav > .active > a:focus,
+  .navbar-nav > li > a,
+  .navbar-nav > li > a:hover,
+  .navbar-nav > li > a.active-trail,
+  .navbar-nav > .open > a,
+  .navbar-nav > .open > a:hover,
+  .navbar-nav > .open > a:focus {
+    background-color: transparent;
+  }
+
+  // Hide sub-menus unless we have JS.
+  ul.navbar-nav ul {
+    display: none;
+  }
+}
+
+// Header styling for JS-enabled pages only.
+html.js {
+  // Fix header#navbar to page top.
+  header#navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    //overflow: hidden;
+
+    z-index: 51;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 0;
+    margin-bottom: 0;
+  }
+
+  // Set the main header height as a variaboo.
+  @main-header-height: 60px;
+
+  // Set the navbar heights to what we expect them to be. This isn't the best
+  // approach but it's less-fiddly than trying to use javascript.
+  @admin-menu-height-smallest-screen: 50px;
+  @admin-menu-height-tablet: 28px;
+
+  body > .main-container {
+    margin-top: 0;
+    padding-top: @main-header-height;
+  }
+
+  // Move the top menu and main container down to account for the admin menu.
+  //body.admin-menu > header#navbar {
+  //  top: 100px;
+  //}
+  //
+  //body.admin-menu > .main-container {
+  //  padding-top: 160px;
+  //}
+
+  //@media (min-width: @screen-xs) {
+  body.admin-menu > header#navbar {
+    top: @admin-menu-height-smallest-screen;
+  }
+
+  body.admin-menu > .main-container {
+    padding-top: @main-header-height;
+  }
+  //}
+
+  @media @tablet {
+    body.admin-menu > header#navbar {
+      top: @admin-menu-height-tablet;
+    }
+
+    body.admin-menu > .main-container {
+      //padding-top: @main-header-height;
+    }
+  }
+
+  // Don't float .navbar-header.
+  .navbar-header {
+    float: none;
+
+    .site-info,
+    .region-navigation .block {
+      float: left;
+    }
+
+    .region-navigation .block {
+      margin-top: 0.5em;
+    }
+
+    // Search form.
+    form#search-block-form {
+      margin: 0;
+    }
+
+    #block-search-form {
+      float: none;
+      margin: 5px 0 5px 5px;
+
+      @media @tablet {
+        max-width: 25%;
+        float: right;
+      }
+
+      .form-group {
+        margin-bottom: 0;
+      }
+    }
+
+    .navbar-search .control-group {
+      margin-bottom: 0px;
+    }
+
+    .nav {
+      li {
+        a {
+          span.glyphicon {
+            display: none;
+          }
+        }
+      }
+    }
+
+    // Hide sub-menus unless we have JS.
+    ul.navbar-nav ul {
+      display: block;
+    }
+
+    // Hideable/showable main menu and search styling.
+    .toggler {
+      display: block;
+      padding: 10px;
+      position: absolute;
+      top: 5px;
+
+      &.toggler-open {
+        color: #fff;
+      }
+    }
+
+    #toggle-header-menu.toggler {
+      right: 5px;
+    }
+
+    #toggle-header-search.toggler {
+      right: 55px;
+    }
+
+    .showhideable-target {
+      background-color: rgba(0, 0, 0, 0.9);
+      padding: 50px 0 100px 0;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+
+      &.header-search-container {
+        padding-top: 100px;
+      }
+    }
+
+    // Make sure togglers are moved to the top-right when open in the header.
+    .toggler-open,
+    #toggle-header-menu.toggler-open,
+    #toggle-header-search.toggler-open {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      z-index: 10001;
+    }
+
+    // Don't pad the H1 with the site name in the header.
+    h1.site-name-link {
+      position: absolute;
+      top: 0;
+      left: 0;
+      max-height: 60px;
+      overflow: hidden;
+
+      a.navbar-brand {
+      }
+    }
+
+    header#navbar {
+      h1.site-name-link.toggler-open {
+        top: 0;
+        right: auto;
+        left: 0;
+
+        a.navbar-brand {
+          color: #fff;
+          z-index: 100002;
+        }
+      }
+    }
+
+    // Pad blocks in the header menus.
+    .header-menu-container {
+      .row {
+        margin-bottom: 3em;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+
+      ul ul {
+        padding-left: 1.5em;
+      }
+    }
+  }
+
+  .navbar-header .showhideable-target,
+  footer.footer {
+    ul {
+      margin: 0.5em 0;
+      padding: 0;
+
+      ul {
+        margin-left: 2em;
+      }
+    }
+
+    &,
+    a,
+    .navbar-nav > .active > a,
+    .navbar-nav > .active > a:hover,
+    .navbar-nav > .active > a:focus,
+    .navbar-nav > li > a,
+    .navbar-nav > li > a:hover,
+    .navbar-nav > li > a.active-trail,
+    .navbar-nav > .open > a,
+    .navbar-nav > .open > a:hover,
+    .navbar-nav > .open > a:focus {
+      color: #fff;
+    }
+
+    // Fix for form elephants' styling.
+    .form-control {
+      color: #fff;
+      background-color: #222;
+      border-color: #555;
+    }
+
+    // Override the navbar styling.
+    .navbar-nav > li > a {
+      line-height: initial;
+      font-size: 1.8em;
+    }
+
+    .navbar-nav > li > ul > li > a {
+      line-height: initial;
+      font-size: 1.2em;
+    }
+
+    a {
+      // We use pixels left and right instead of ems to align different
+      // font-sizes vertically.
+      padding: 0.5em 5px;
+      margin: 0;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    // Style the language switcher.
+    #block-lang-dropdown-language {
+      margin-left: 40px;
+    }
+
+    // Move the language icon to the right of the dropdown.
+    form#lang-dropdown-form {
+      //div.form-item-lang-dropdown-select {
+      position: relative;
+
+      img.language-icon {
+        position: absolute;
+        left: -34px;
+        top: 50%;
+        margin-top: -6px;
+        width: 24px;
+      }
+      //}
+    }
+  }
+}
+
+h1.site-name-link {
+  margin: 0;
+  padding: 0;
+  font-size: 1.5em;
+  max-width: 75%;
+
+  @media (min-width: @screen-xs) {
+    font-size: 2.5em;
+    max-width: 85%;
+  }
+
+  @media @normal {
+    font-size: 2.4em;
+  }
+
+  a.navbar-brand {
+    float: none;
+    padding: 0.25em 0.5em;
+    margin: 0;
+    display: inline-block;
+    line-height: initial;
+    font-size: inherit;
+  }
+}
+
+// Don't show the slogan.
+.site-name-link-and-slogan .site-slogan {
+  display: none;
+}
+
+//
+//.navbar-default .navbar-nav {
+//  > .active > a,
+//  > .active > a:hover,
+//  > .active > a:focus,
+//  > li > a:hover,
+//  > li > a.active-trail,
+//  > .open > a,
+//  > .open > a:hover,
+//  > .open > a:focus {
+//    background-color: transparent;
+//    color: #000;
+//  }
+//
+//  > .active > a:hover,
+//  > .active > a:focus,
+//  > li > a:hover,
+//  > .open > a:hover,
+//  > .open > a:focus {
+//    text-decoration: underline;
+//  }
+//}
+//
+//@media @tablet {
+//  .navbar-header {
+//    margin-top: 0.25em;
+//    margin-left: 1em;
+//  }
+//
+//  .navbar-nav {
+//    float: none;
+//    margin: 0;
+//  }
+//
+//  //.navbar-nav > li {
+//  //  font-size: 1.3em;
+//  //}
+//  //.navbar-nav > li > a {
+//  //  padding-top: 15px;
+//  //  padding-bottom: 15px;
+//  //}
+//}
+
+// Hide the .navbar-toggle-label.
+.navbar-toggle-label {
+  display: none;
+}
+
+// Remove the boring default grey from the header.
+.navbar-default {
+  background-color: transparent;
+  border: 0;
+  border-bottom: @faint-edge-colour 1px solid;
+}
+
+// Remove the borders and drop shadows from the dropdown menus.
+.dropdown-menu {
+  border: 0;
+  .box-shadow(0);
+}
+
+// Don't style the breadcrumbs so heavily.
+.breadcrumb {
+  padding: 0;
+  margin: 0 0 1.5em 0;
+  font-size: 1.2rem;
+  background-color: transparent;
+  border: 0;
+}

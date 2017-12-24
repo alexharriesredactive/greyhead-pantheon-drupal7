@@ -1,0 +1,146 @@
+<?php
+
+/**
+ * @file
+ * Paragraphs nav paragraph module file.
+ */
+
+define('PNP_PARAGRAPH_TYPE', 'paragraphs_item');
+define('PNP_BUNDLE_PARAGRAPH', 'paragraphs_nav_paragraph');
+define('PNP_FIELD_BLOCKREFERENCE', 'field_paragraphs_nav_nav');
+define('PNP_PARA_NAV_BLOCK', 'paragraphs_nav_block');
+
+// @ToDo Fix hook_blockreference_blocks_pre_alter
+// @See https://www.drupal.org/node/2470315#comment-9853701
+/**
+ * Alter referenceable blocks, BEFORE the autocomplete match.
+ */
+//function paragraphs_nav_paragraph_blockreference_blocks_pre_alter(&$blocks, $context) {
+//  // Find all navigation blocks based on menus enabled on field instances.
+//  $navs = paragraphs_nav_block_find_nav_blocks();
+//
+//  // Prevent errors when creating field.
+//  if (isset($context['entity']) && method_exists($context['entity'], 'instanceInfo')) {
+//    $parent_instanceinfo = $context['entity']->instanceInfo();
+//
+//    // Remove nav blocks irrelevant to parent entity.
+//    foreach ($navs as $delta => $nav) {
+//      // Check if block with this delta is for this entity, bundle.
+//      // Allows mixing fields.
+//      if (!(($nav['entity_type'] == $parent_instanceinfo['entity_type']) &&
+//        ($nav['bundle_name'] == $parent_instanceinfo['bundle']))
+//      ) {
+//        unset($blocks[PNP_PARA_NAV_BLOCK . ':' . $nav['delta']]);
+//      }
+//    }
+//  }
+//}
+
+/**
+ * Adds blockreference field to a paragraph bundle.
+ *
+ * @param string $bundle
+ *   A paragraph type machine_name.
+ * @param $field_label
+ *   A label of the field.
+ * @return array
+ *   An items field instance.
+ */
+function paragraphs_nav_paragraph_add_field_blockreference($bundle, $field_label) {
+  $field = paragraphs_nav_paragraph_get_field_blockreference();
+
+  $instance = _paragraphs_nav_paragraph_add_field(array(
+    'field_name' => $field['field_name'],
+    'entity_type' => PNP_PARAGRAPH_TYPE,
+    'bundle' => $bundle,
+    'label' => $field_label,
+    'widget' => array(
+      'type' => 'options_select',
+      'module' => 'options',
+      'active' => 1,
+      'settings' => array(),
+    ),
+    'settings' => array(
+      'blockreference_modules' => array(
+        'paragraphs_nav_block' => 'paragraphs_nav_block',
+      ),
+      'user_register_form' => FALSE,
+    ),
+    'display' => array(
+      'default' => array(
+        'label' => 'hidden',
+        'type' => 'blockreference_without_title',
+        'weight' => '0',
+        'settings' => array(),
+        'module' => 'blockreference',
+      ),
+      'paragraphs_editor_preview' => array(
+        'type' => 'hidden',
+        'label' => 'above',
+        'settings' => array(),
+        'weight' => 0,
+      ),
+    ),
+    'required' => 1,
+  ));
+
+  return $instance;
+}
+
+/**
+ * Get/Create blockreference field.
+ *
+ * This field can be used only on paragraph entity type.
+ *
+ * @return array
+ *  An array containing field values.
+ */
+function paragraphs_nav_paragraph_get_field_blockreference() {
+  $field = _paragraphs_nav_paragraph_get_field(array(
+    'field_name' => PNP_FIELD_BLOCKREFERENCE,
+    'type' => 'blockreference',
+    'entity_types' => array(PNP_PARAGRAPH_TYPE),
+  ));
+
+  return $field;
+}
+
+/**
+ * Adds/Create field instance of PNP_PARAGRAPH_TYPE.
+ *
+ * Helper function.
+ *
+ * @param array $instance
+ *   An array of instance settings.
+ * @return array
+ *   An instance.
+ */
+function _paragraphs_nav_paragraph_add_field($instance) {
+  // Check if the instance exists already.
+  $instance_info = field_info_instance(PNP_PARAGRAPH_TYPE, $instance['field_name'], $instance['bundle']);
+  if (empty($instance_info)) {
+    field_create_instance($instance);
+  }
+
+  return $instance_info;
+}
+
+/**
+ * Get/Create field by $field settings.
+ *
+ * Helper function.
+ *
+ * @param array $field
+ *   An array of field settings.
+ * @return array
+ *   A field.
+ */
+function _paragraphs_nav_paragraph_get_field($field) {
+  // Check if the field exists already.
+  $field_info = field_info_field($field['field_name']);
+  if (empty($field_info)) {
+    $field_info = field_create_field($field);
+  }
+
+  return $field_info;
+}

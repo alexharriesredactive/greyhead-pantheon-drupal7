@@ -1,0 +1,15 @@
+diff --git a/gmap.module b/gmap.module
+index 1b32c5c..04b073f 100755
+--- a/gmap.module
++++ b/gmap.module
+@@ -1001,7 +1001,9 @@ function theme_gmap($variables) {
+   // Theming needs to get fixed instead..
+   if (isset($map['markers'])) {
+     foreach ($map['markers'] as $i => $marker) {
+-      unset($map['markers'][$i]['text']);
++      if (isset($marker['text'])) {
++        $map['markers'][$i]['text'] = '<div class="gmap-popup">' . $marker['text'] . '</div>';
++      }
+     }
+   }
+ 

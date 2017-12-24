@@ -1,0 +1,7 @@
+name = Adestra
+description = This module provides an XML-RPC client implementation for communicating with Adestras MessageFocus API.
+package = Adestra
+core = 7.x
+
+dependencies[] = variable
+configure = admin/config/services/adestra

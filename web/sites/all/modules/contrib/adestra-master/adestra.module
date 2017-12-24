@@ -1,0 +1,213 @@
+<?php
+
+/**
+ * @file
+ * Adestra module.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function adestra_menu() {
+  $items = array();
+
+  $items['admin/config/services/adestra'] = array(
+    'title' => 'Adestra',
+    'description' => 'Manage Adestra Settings.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('variable_module_form', 'adestra'),
+    'access arguments' => array('administer adestra configuration'),
+  );
+  $items['admin/config/services/adestra/global'] = array(
+    'title' => 'Global Settings',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function adestra_permission() {
+  return array(
+    'administer adestra configuration' => array(
+      'title' => t('Administer Adestra'),
+    ),
+    'debug adestra' => array(
+      'title' => t('Debug Adestra'),
+    ),
+  );
+}
+
+function adestra_xmlrpc_endpoint($authentication_variable = 'adestra_default_authentication_[authentication_part]') {
+  $name = str_replace('[authentication_part]', '', $authentication_variable);
+  $endpoint = parse_url(variable_get_value($name . 'endpoint'));
+  $endpoint['user'] = variable_get_value($name . 'account') . "." . variable_get_value($name . 'username');
+  $endpoint['pass'] = variable_get_value($name . 'password');
+  $url = $endpoint['scheme'] . '://' .
+  (isset($endpoint['user']) ? $endpoint['user'] : '') .
+  (isset($endpoint['pass']) ? ':' . $endpoint['pass'] . '@' : '') .
+  $endpoint['host'] .
+  $endpoint['path'] .
+  (isset($endpoint['query']) ? '?' . $endpoint['query'] : '') .
+  (isset($endpoint['fragment']) ? '#' . $endpoint['fragment'] : '');
+  return url($url, array('external' => TRUE));
+}
+
+/**
+ * Call the XML-RPC endpoint and return the result as a Drupal message.
+ *
+ * @see xmlrpc()
+ * @see xmlrpc_errno()
+ * @see xmlrpc_error_msg()
+ */
+function adestra_call($method, $arguments = array()) {
+  // First load the endpoint of the XML-RPC service.
+  $server = adestra_xmlrpc_endpoint();
+  // Then we should define the method to call. xmlrpc() requires that all the
+  // information related to the called method is passed as an array in the form
+  // of 'method_name' => arguments_array
+
+  $method_parts = explode(".", $method);
+
+  // Invoke hook_adestra_call_alter(), and
+  // hook_adestra_call_METHOD_NAME_alter() implementations.
+  $hooks = array('adestra_call');
+  $hooks[] = 'adestra_call_' . $method_parts[0] . '_' . $method_parts[1];
+  drupal_alter($hooks, $method, $arguments);
+
+  $options = array($method => $arguments);
+
+//  print_r("server = " . $server . "<br>");
+//  print "<pre>";
+//  print_r($options);
+//  print "</pre>";
+//  exit;
+
+  // Make the xmlrpc request and process the results.
+  $result = xmlrpc($server, $options);
+
+  if ($result === FALSE) {
+    if (module_exists('rules')) {
+      rules_invoke_event('adestra_xmlrpc_error', xmlrpc_errno(), xmlrpc_error_msg());
+    }
+    watchdog('adestra', 'Error return from xmlrpc(): Error: @errno, Message: @message',
+      array('@errno' => xmlrpc_errno(), '@message' => xmlrpc_error_msg()),
+      WATCHDOG_ERROR
+    );
+    if (variable_get_value('adestra_default_debug') == TRUE && user_access('debug adestra')) {
+      drupal_set_message(t('Error return from xmlrpc(): Error: @errno, Message: @message',
+        array('@errno' => xmlrpc_errno(), '@message' => xmlrpc_error_msg())),
+        'error'
+      );
+    }
+  }
+  else {
+    if (variable_get_value('adestra_default_debug') == TRUE && user_access('debug adestra')) {
+      drupal_set_message(
+      t('The XML-RPC server returned this response: @response',
+      array('@response' => print_r($result, TRUE)))
+      );
+    }
+    return $result;
+  }
+}
+
+function adestra_fetch_contacts($table_id = NULL, $data_table_ids = array(), $paging_args = NULL) {
+  if ($table_id === NULL) {
+    $table_id = variable_get_value('adestra_default_table_id');
+  }
+  $contacts = adestra_call('contact.all', array($table_id, $data_table_ids, $paging_args));
+  return $contacts;
+}
+
+function adestra_fetch_contact($id, $data_table_ids = NULL) {
+  $contact = adestra_call('contact.get', array($id, $data_table_ids));
+  return $contact;
+}
+
+function adestra_fetch_contact_lists($id) {
+  $list_ids = adestra_call('contact.lists', array($id));
+  return $list_ids;
+}
+
+function adestra_search_contacts($table_id = NULL, $search_args, $data_table_ids = NULL, $paging_args = NULL) {
+  if ($table_id === NULL) {
+    $table_id = variable_get_value('adestra_default_table_id');
+  }
+  $contacts = adestra_call('contact.search', array($table_id, $search_args, $data_table_ids, $paging_args));
+  return $contacts;
+}
+
+function adestra_create_contact($table_id = NULL, $contact_data, $dedupe_field = NULL) {
+  if ($table_id === NULL) {
+    $table_id = variable_get_value('adestra_default_table_id');
+  }
+  $contact_id = adestra_call('contact.create', array($table_id, $contact_data, $dedupe_field));
+  return $contact_id;
+}
+
+function adestra_update_contact($contact_id, $contact_data) {
+  $contact_id = adestra_call('contact.update', array($contact_id, $contact_data));
+  return $contact_id;
+}
+
+function adestra_subscribe_contact($contact_id, $list_id) {
+  $result = adestra_call('contact.addList', array($contact_id, $list_id));
+  return $result;
+}
+
+function adestra_subscribe_contact_multiple($contact_id, $list_ids = array(), $unsub_list_ids = array()) {
+  if (!empty($list_ids) || !empty($unsub_list_ids)) {
+    $result = adestra_call('contact.subscribe', array($contact_id, array_values($list_ids), array_values($unsub_list_ids)));
+    return $result;
+  }
+}
+
+function adestra_unsubscribe_contact($contact_id, $list_id) {
+  $result = adestra_call('contact.removeList', array($contact_id, $list_id));
+  return $result;
+}
+function adestra_unsubscribe_contact_multiple($contact_id, $list_ids = array(), $unsub_list_ids = array()) {
+  if (!empty($list_ids) || !empty($unsub_list_ids)) {
+    $result = adestra_call('contact.unsubscribe', array($contact_id, array_values($list_ids), array_values($unsub_list_ids)));
+    return $result;
+  }
+}
+
+function adestra_import_contacts($contact_id, $data_file_url, $options) {
+  $result = adestra_call('contact.import', array($contact_id, $data_file_url, $options));
+  return $result;
+}
+
+function adestra_send_email($contact, $campaign_id, $transaction_data) {
+  $result = adestra_call('contact.transactional', array($contact, $campaign_id, $transaction_data));
+  return $result;
+}
+
+function adestra_fetch_list($id) {
+  $list = adestra_call('list.get', array($id));
+  return $list;
+}
+
+function adestra_fetch_lists($paging_args = NULL) {
+  $lists = adestra_call('list.all', array($paging_args));
+  return $lists;
+}
+
+function adestra_search_lists($search_args, $paging_args = NULL) {
+  $lists = adestra_call('list.search', array($search_args, $paging_args));
+  return $lists;
+}
+
+function adestra_create_list($create_args) {
+  $lists = adestra_call('list.create', array($create_args));
+  return $lists;
+}
+
+function adestra_update_list($id, $update_args) {
+  $result = adestra_call('list.update', array($id, $update_args));
+  return $result;
+}

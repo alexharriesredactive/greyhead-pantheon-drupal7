@@ -1,0 +1,97 @@
+<?php
+/**
+ * @name iats_acton.install
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function acton_uninstall() {
+  drupal_uninstall_schema('iats_acton');
+}
+
+/**
+ * Implements hook_install().
+ */
+function acton_install() {
+  if (db_table_exists('acton_post_url') == FALSE && db_table_exists('acton_drupal_webforms') == FALSE && db_table_exists('action_post_mapping') == FALSE) {
+    drupal_install_schema('iats_acton');
+  }
+}
+
+/**
+ * Implements hook_enable().
+ */
+function acton_enable() {
+  if (db_table_exists('acton_post_url') == FALSE && db_table_exists('acton_drupal_webforms') == FALSE && db_table_exists('action_post_mapping') == FALSE) {
+    drupal_install_schema('iats_acton');
+  }
+}
+
+/**
+ * Implements hook_schema().
+ */
+function acton_schema() {
+
+  // Post URLs
+  $schema['acton_post_url'] = array(
+    'description' => 'Post urls for Act-On webforms specified here',
+    'fields' => array(
+      'id'  => array(
+        'type'     => 'serial',
+        'not null' => TRUE,
+      ),
+      'url' => array(
+        'type'        => 'varchar',
+        'not null'    => TRUE,
+        'length'      => 250,
+        'default'     => '',
+      ),
+    ),
+    'primary key' => array('id'),
+  );
+
+  // Webforms associated to Post URLs
+  $schema['acton_drupal_webforms'] = array(
+    'description' => 'Drupal webforms associated with Act-On post urls',
+    'fields' => array(
+      'nid'      => array(
+        'type'     => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'url_id' => array(
+        'type'     => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+    ),
+  );
+
+  // Webforms component Act On form item name mappings
+  $schema['acton_post_mapping'] = array(
+    'description' => 'Drupal webform component mappings to Act-On post form names',
+    'fields' => array(
+      'nid'      => array(
+        'type'     => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'unique'   => TRUE,
+      ),
+      'form_key' => array(
+        'type'        => 'varchar',
+        'not null'    => TRUE,
+        'length'      => 250,
+        'default'     => '',
+      ),
+      'mapped_name' => array(
+        'type'        => 'varchar',
+        'not null'    => TRUE,
+        'length'      => 250,
+        'default'     => '',
+      ),
+    ),
+  );
+
+  return $schema;
+}

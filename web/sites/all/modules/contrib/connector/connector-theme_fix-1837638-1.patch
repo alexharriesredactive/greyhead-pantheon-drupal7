@@ -1,0 +1,13 @@
+diff --git a/connector.module b/connector.module
+index e58dcba..c08a293 100644
+--- a/connector.module
++++ b/connector.module
+@@ -556,7 +556,7 @@ function theme_connector_buttons($variables) {
+   $output = '';
+   $buttons = array();
+   foreach (element_children($form) as $key) {
+-    if ($form[$key]['#type'] == 'submit') {
++    if (isset($form[$key]['#type']) && $form[$key]['#type'] == 'submit') {
+       $class = str_replace('_', '-', $key);
+       $form[$key]['#attributes']['class'][] = 'connector-button';
+       $form[$key]['#attributes']['class'][] = $class;

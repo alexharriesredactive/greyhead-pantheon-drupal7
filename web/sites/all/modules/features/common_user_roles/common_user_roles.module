@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the User Roles feature.
+ */
+
+include_once 'common_user_roles.features.inc';

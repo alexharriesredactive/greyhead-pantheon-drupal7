@@ -1,0 +1,231 @@
+<?php
+
+/**
+ * @file
+ * paragraphs_nav
+ */
+
+// Paragraph modules:
+define('PN_PARAGRAPH_ITEM_ENTITY_TYPE', 'paragraphs_item');
+define('PN_PARAGRAPH_FIELD_TYPE', 'paragraphs');
+
+// Menu settings default options
+define('PN_NAV_NONE', 'none');
+define('PN_NAV_NOTITLE', 'notitle');
+define('PN_NAV_FIELDTITLE', 'fieldtitle');
+
+// Only field type allowed for titles:
+define('PN_ALLOWED_FOR_TITLE', 'text');
+
+// Navigation blocks
+define('PN_BLOCK_PREFIX', 'ppn');
+
+/**
+ * Finds all textfields that can be used as menu titles
+ * in all paragraph_item bundles
+ * that can be referenced by user in specific field
+ * and returns them as options array for Form API.
+ */
+function paragraphs_nav_get_title_fields($entity_type, $bundle_name, $field_name) {
+  // Load info about the field.
+  $field_instance = field_info_instance($entity_type, $field_name, $bundle_name);
+
+  // Exit with defaults if no bundles are available.
+  if (count($field_instance['settings']['allowed_bundles']) == 0) {
+    return array(
+      PN_NAV_NONE => t('No menu'),
+      PN_NAV_NOTITLE => t('Menu without titles'),
+    );
+  }
+
+  // Paragraph types that can be referenced from paragraph item.
+  $allowed_bundles = array();
+  foreach ($field_instance['settings']['allowed_bundles'] as $allowed_bundle_name => $allowed_bundle) {
+    if (!empty($allowed_bundle)) {
+      $allowed_bundles[$allowed_bundle_name] = $allowed_bundle;
+    }
+  }
+
+  // If no bundle is selected all of them are possible options.
+  if ((count($field_instance['settings']['allowed_bundles']) > 0) && (count($allowed_bundles) == 0)) {
+    $allowed_bundles = $field_instance['settings']['allowed_bundles'];
+  }
+
+  // Find all textfields across all bundles
+  $textfields = array();
+  foreach ($allowed_bundles as $allowed_bundle_name => $allowed_bundle) {
+    // Load field attached to this bundle.
+    $bundle_fields = field_info_instances(PN_PARAGRAPH_ITEM_ENTITY_TYPE, $allowed_bundle_name);
+    foreach ($bundle_fields as $bundle_field_name => $bundle_field) {
+      // Get info about field type.
+      $field_info = field_info_field($bundle_field_name);
+      // Filtr only text fields.
+      if ($field_info['type'] == PN_ALLOWED_FOR_TITLE) {
+        $textfields[$bundle_field_name]['label'] = $bundle_field['label'];
+        $para_bundle_name = paragraphs_bundle_load($allowed_bundle_name);
+        $textfields[$bundle_field_name]['bundles'][] = $para_bundle_name->name;
+      }
+    }
+
+  }
+
+  // Alter array to be suitable for Form API
+  $options = array(
+    PN_NAV_NONE => t('No menu'),
+    PN_NAV_NOTITLE => t('Menu without titles'),
+  );
+  foreach ($textfields as $textfield_key => $textfield) {
+    // Format: Field title (Paragraph bundles)
+    $options[$textfield_key] = $textfield['label'] . ' (' . implode(', ', $textfield['bundles']) . ')';
+  }
+
+  return $options;
+}
+
+/**
+ * Implements hook_preprocess().
+ *
+ * Adds id attribute to all paragraph_items.
+ * (so we can link to specific positions in page from nav. block)
+ */
+function paragraphs_nav_preprocess(&$variables, $hook) {
+  // Only run with paragraphs_item entity.
+  if (!empty($variables['entity_type']) == PN_PARAGRAPH_ITEM_ENTITY_TYPE) {
+    if (!empty($variables[PN_PARAGRAPH_ITEM_ENTITY_TYPE])) {
+      // Get paragraph entity.
+      $entity = $variables[PN_PARAGRAPH_ITEM_ENTITY_TYPE];
+      // Define class name.
+      $id = 'paragraphs-item-' . $entity->item_id;
+      // Add id to attributes_array.
+      $variables['attributes_array']['id'][] = drupal_html_class($id);
+    }
+  }
+}
+
+/**
+ * Adds entity type to all entities.
+ *
+ * @See https://www.drupal.org/node/1042822 Developers need an $entity->entity_type property
+ * @See paragraphs_nav_block_view()
+ */
+function paragraphs_nav_entity_load($entities, $type) {
+  foreach ($entities as $entity) {
+    $entity->pn_entity_type = $type;
+  }
+}
+
+/**
+ * Returns HTML with navigation.
+ */
+function paragraphs_nav_contents($nav, $entity) {
+  // Get active language.
+  $lang = field_language('node', $entity, $nav['field_name']);
+
+  // Array of menu items.
+  $variables = array(
+    'menu_items' => array(),
+    'attributes' => array(
+      'class' => array(
+        $nav['machine_name'],
+      ),
+    ),
+  );
+
+  // Add some more classes.
+  switch ($nav['title_field']) {
+    case PN_NAV_NONE:
+      $variables['attributes']['class'][] = PN_NAV_NONE;
+    case PN_NAV_NOTITLE:
+      $variables['attributes']['class'][] = PN_NAV_NOTITLE;
+    default:
+      $variables['attributes']['class'][] = PN_NAV_FIELDTITLE;
+      $variables['attributes']['class'][] = $nav['title_field'];;
+  }
+
+  // Go trough paragraphs.
+  foreach ($entity->{$nav['field_name']}[$lang] as $para_delta => $para) {
+    $variables['menu_items'][] = paragraphs_nav_create_menu_item($para, $lang, $nav['title_field']);
+  }
+
+  return theme('paragraphs_nav_menu', $variables);
+}
+
+/**
+ * paragraphs_nav_create_menu_item()
+ *
+ * Creates menu item array.
+ */
+function paragraphs_nav_create_menu_item($item, $lang, $title_field) {
+  if ($paragraph = paragraphs_field_get_entity($item)) {
+    if (entity_access('view', PN_PARAGRAPH_ITEM_ENTITY_TYPE, $paragraph)) {
+      switch ($title_field) {
+        case PN_NAV_NONE:
+          return array();
+        case PN_NAV_NOTITLE:
+          return array(
+            'text' => '',
+            'path' => '',
+            'options' => array(
+              'fragment' => 'paragraphs-item-' . check_plain($paragraph->item_id),
+              'external' => TRUE,
+              'attributes' => array(
+                'class' => array(
+                  'ppn-item',
+                  'ppn-no-title',
+                  drupal_html_class('paragraphs-nav-item-' . check_plain($paragraph->item_id)),
+                ),
+              ),
+            ),
+          );
+        default:
+          return array(
+            'text' => isset($paragraph->{$title_field}[$lang][0]['value']) ? filter_xss($paragraph->{$title_field}[$lang][0]['value'], array()) : '',
+            'path' => '',
+            'options' => array(
+              'fragment' => 'paragraphs-item-' . check_plain($paragraph->item_id),
+              'external' => TRUE,
+              'attributes' => array(
+                'class' => array(
+                  'ppn-item',
+                  isset($paragraph->{$title_field}[$lang][0]['safe_value']) ? 'ppn-with-title' : 'ppn-missing-title',
+                  drupal_html_class('paragraphs-nav-item-' . check_plain($paragraph->item_id)),
+                ),
+              ),
+            ),
+          );
+      }
+    }
+  }
+
+  return NULL;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function paragraphs_nav_theme($existing, $type, $theme, $path) {
+  return array(
+    'paragraphs_nav_menu' => array(
+      'variables' => array(
+        'menu_items' => NULL,
+        'attributes' => array(),
+      ),
+    ),
+  );
+}
+
+/**
+ * Returns HTML
+ * @See paragraphs_nav_theme()
+ */
+function theme_paragraphs_nav_menu(&$variables) {
+  $output = '<ul' . drupal_attributes($variables['attributes']) . '>';
+  foreach ($variables['menu_items'] as $item) {
+    $output .= '<li' . drupal_attributes($item['options']['attributes']) . '>' .
+      l($item['text'], $item['path'], $item['options']) .
+      '</li>';
+  }
+  $output .= '</ul>';
+
+  return $output;
+}

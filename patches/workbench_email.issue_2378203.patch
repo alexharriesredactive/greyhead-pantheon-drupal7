@@ -1,0 +1,14 @@
+diff --git a/workbench_email.module b/workbench_email.module
+index c83f5bd..bc365c5 100644
+--- a/workbench_email.module
++++ b/workbench_email.module
+@@ -899,6 +899,9 @@ function workbench_email_scheme_menu_get_parents($sections) {
+     $query->condition('mlid', array_keys($sections), 'IN');
+   }
+   else {
++    if (!is_array($sections)) {
++      $sections = array($sections => $sections);
++    }
+     $query->condition('mlid', $sections, 'IN');
+   }
+   $result = $query->execute();

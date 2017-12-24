@@ -1,0 +1,784 @@
+<?php
+
+/**
+ * Greyhead customisations and testing module.
+ *
+ * Author: Alex Harries - alex@greyhead.co.uk if you want to complain about my
+ * code :)
+ */
+
+/**
+ * Load in the .inc files.
+ *
+ * We do this outside of a Drupal bootstrap so the functions in that file are
+ * available as early as possible.
+ */
+include_once 'greyhead_customisations.inc';
+include_once 'greyhead_customisations.user_role_utilities.inc';
+
+/**
+ * Implements hook_init().
+ */
+function greyhead_customisations_init() {
+  // If the path contains a double slash and $_POST is not set or is empty,
+  // redirect the user to the URL with double slashes removed.
+  if (variable_get('greyhead_customisations_remove_double_slashes', FALSE)) {
+    if (!isset($_POST) || (isset($_POST) && empty($_POST))) {
+      $new_path = str_replace('//', '/', $_GET['q']);
+      if ($_GET['q'] !== $new_path) {
+        watchdog('greyhead_customisations', 'User redirected from @old_path which contained double slashes to @new_path. You can disable this functionality at the !settings_link.', [
+          '@old_path' => url($_GET['q'], ['absolute' => TRUE]),
+          '@new_path' => url($new_path, ['absolute' => TRUE]),
+          '!settings_link' => l(t('site customisation settings page'), 'admin/config/site-customisations', ['absolute' => TRUE]),
+        ], WATCHDOG_NOTICE);
+
+        drupal_goto($new_path);
+      }
+    }
+  }
+
+  // Add stylesheet to all pages - even admin pages.
+  drupal_add_css(drupal_get_path('module', 'greyhead_customisations') . '/css/greyhead-customisations.css');
+
+  // If the user is logged in and we're on a node add or edit page, add the
+  // Javascript which tries to automagically select the right menu parent when the
+  // Workbench Access module's section is selected, and vice-versa.
+  if (module_exists('workbench_access') && (arg(0) == 'node')
+    && ((is_numeric(arg(1)) && (arg(2) == 'edit')
+      || ((arg(1) == 'add') && strlen(arg(2)) > 0)))
+  ) {
+    drupal_add_js(drupal_get_path('module', 'greyhead_customisations') . '/js/greyhead_customisations_workbench_access_tweaks.js', 'file');
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function greyhead_customisations_theme($existing, $type, $theme, $path) {
+  return [
+    // Theme definition which renders out a list of child pages as a list of
+    // links, with extra wrapping divs so we can style them all pretty, like...
+    'greyhead_customisations_your_health_side_menu' => [
+      'variables' => ['child_pages_list' => NULL],
+      'template' => 'greyhead-customisations-your-health-side-menu',
+      'path' => $path . '/templates',
+    ],
+    // Theme definition for a single child page link, no image or desc.
+    'greyhead_customisations_your_health_menu_item' => [
+      // We pass in an array of options so it's easier to add new ones.
+      'variables' => ['child_page' => NULL],
+      'template' => 'greyhead-customisations-your-health-menu-item',
+      'path' => $path . '/templates',
+    ],
+    // Theme definition which renders out a list of child pages.
+    'greyhead_customisations_child_pages' => [
+      'variables' => ['child_pages_list' => NULL],
+      'template' => 'greyhead-customisations-child-pages',
+      'path' => $path . '/templates',
+    ],
+    // Theme definition for a single child page.
+    'greyhead_customisations_child_page' => [
+      // We pass in an array of options so it's easier to add new ones.
+      'variables' => ['child_page' => NULL],
+      'template' => 'greyhead-customisations-child-page',
+      'path' => $path . '/templates',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_preprocess_html.
+ *
+ * @param $variables
+ */
+function greyhead_customisations_preprocess_html(&$variables) {
+  // Check if the classes array exists.
+  if (!array_key_exists('classes_array', $variables)) {
+    $variables['classes_array'] = [];
+  }
+
+  if (!is_array($variables['classes_array'])) {
+    $variables['classes_array'] = (array) $variables['classes_array'];
+  }
+
+  // Append a class which indicates which environment we're on to allow us to
+  // do some specific styling, e.g. to add or hide debug info on the site.
+  $variables['classes_array'][] = 'environment-' . (defined('CURRENT_ENVIRONMENT') ? drupal_html_class(CURRENT_ENVIRONMENT) : drupal_html_class('unknown'));
+
+  // Add in any custom classes set by the administrator.
+  $variables['classes_array'][] = variable_get('greyhead_customisations_custom_body_classes');
+}
+
+/**
+ * Implements hook_js_alter.
+ *
+ * @param $js
+ */
+function greyhead_customisations_js_alter(&$js) {
+  // Get the weight of the admin_menu/admin_menu.js file and set the
+  // greyhead_customisations/js/greyhead_customisations.js to a higher weight,
+  // to allow us to run our jQuery after Admin Menu.
+  $greyhead_customisations_js_file_path = $admin_menu_file_path = NULL;
+
+  foreach ($js as $js_file_path => $js_file_data) {
+    // Split the path into an array, split by slash (not the bloke from G'nR).
+    $js_file_path_parts = (array) explode('/', $js_file_path);
+
+    // Reverse the array.
+    $js_file_path_parts = array_reverse($js_file_path_parts);
+
+    // If the first path part (the filename) matches greyhead_customisations.js,
+    // make a note of the $js_file_path, as we will be changing its weight.
+    if ($js_file_path_parts[0] == 'greyhead_customisations.js') {
+      $greyhead_customisations_js_file_path = $js_file_path;
+    }
+    elseif ($js_file_path_parts[0] == 'admin_menu.js') {
+      $admin_menu_file_path = $js_file_path;
+    }
+  }
+
+  if (!is_null($greyhead_customisations_js_file_path)
+    && !is_null($admin_menu_file_path)
+  ) {
+    $js[$greyhead_customisations_js_file_path]['weight']
+      = $js[$admin_menu_file_path]['weight'] + 1;
+  }
+
+  // Fix for imagecrop throwing a paddy and breaking the Media module - load
+  // imagecrop JS last.
+  $module_path = drupal_get_path('module', 'imagecrop') . '/js/imagecrop_field.js';
+
+  if (array_key_exists($module_path, $js)) {
+    $imagecrop_js = $js[$module_path];
+    unset($js[$module_path]);
+    array_unshift($js, $imagecrop_js);
+  }
+}
+
+/**
+ * Implements hook_form_node_form_alter.
+ *
+ * @param $form
+ * @param $form_state
+ */
+function greyhead_customisations_form_alter(&$form, $form_state, $form_id) {
+  // Alterations to be made on node edit forms.
+  if (!empty($form['#node_edit_form'])) {
+    // When we have a URL slug field, force pathauto to always run, and don't
+    // allow a custom path to be set, because the URL slug is setting the path.
+    if (array_key_exists('field_url_slug', $form)) {
+      $form['path']['pathauto']['#default_value']
+        = $form['path']['pathauto']['#value'] = TRUE;
+      $form['path']['pathauto']['#disabled'] = TRUE;
+    }
+
+    // On node edit forms, allow the passing of a plid attribute to pre-select
+    // a menu item.
+    if (array_key_exists('menu', $form) && isset($_GET['plid'])) {
+      // Get the plid.
+      $plid = intval($_GET['plid']);
+
+      // Work out the option name from the plid. Plids are unique, but the
+      // options are prefixed with the menu name, so we need to check each
+      // option. For example, an option might be "main-menu:1234", where "1234"
+      // is the plid.
+      foreach ($form['menu']['link']['parent']['#options'] as $option => $option_name) {
+        $option_array = explode(':', $option);
+
+        if (isset($option_array[1]) && is_numeric($option_array[1]) && ($option_array[1] == $plid)) {
+          // Found the right parent - set it as default.
+          $form['menu']['link']['parent']['#value'] = $option;
+
+          // Disable both the menu parent select.
+          $form['menu']['link']['parent']['#disabled'] = TRUE;
+
+          // Set the menu link title to required.
+          $form['menu']['link']['link_title']['#required'] = TRUE;
+
+          // Also make sure that the menu link checkbox is checked and disabled,
+          // and add some help text to explain.
+          $form['menu']['enabled']['#default_value']
+            = $form['menu']['enabled']['#value']
+            = $form['menu']['enabled']['#disabled'] = TRUE;
+          $form['menu']['enabled']['#title'] = t('This type of page must always have a menu link');
+        }
+      }
+    }
+  }
+
+  // Always encrypt all submitted form data.
+  if (($form['#form_id'] == 'webform_component_edit_form')
+    && array_key_exists('encryption', $form)
+  ) {
+    $form['encryption']['encrypt']['#default_value']
+      = $form['encryption']['encrypt']['#value']
+      = $form['encryption']['encrypt']['#disabled'] = TRUE;
+  }
+
+  // Disable/highlight overridden fields, except where excluded.
+  $forms_excluded_from_overridden_variable_warnings = variable_get('greyhead_customisations_overridden_variables_excluded_forms', []);
+
+  if (!in_array($form_id, $forms_excluded_from_overridden_variable_warnings, TRUE)) {
+    // Disable form fields which have been overridden in /configuration.
+    $greyhead_configuration = variable_get('greyhead_configuration', ['overridden_variables' => []]);
+    $overridden_variables = (array) array_flip($greyhead_configuration['overridden_variables']);
+    greyhead_customisations_highlight_overridden_form_fields($form, $overridden_variables);
+
+    // Show a warning on fields which have been overridden by Strongarm.
+    if (module_exists('strongarm')) {
+      $overridden_variables = (array) strongarm_vars_load();
+      greyhead_customisations_highlight_overridden_form_fields($form, $overridden_variables, FALSE, 'strongarm');
+    }
+
+    // Prevent users without the user_admin_role role from changing the value of
+    // user_admin_role in the user config page.
+    if (($form['#form_id'] == 'user_admin_settings') &&
+      !user_has_role_by_name(variable_get('user_admin_role', 'administrator'))
+    ) {
+      // Hide the admin_role fieldset, if found.
+      if (array_key_exists('admin_role', $form)) {
+        $form['admin_role']['#access'] = FALSE;
+      }
+
+      // Hide the user_admin_role field and change to a server-side value.
+      if (array_key_exists('user_admin_role', $form['admin_role'])) {
+        $form['admin_role']['user_admin_role']['#type'] = 'value';
+        $form['admin_role']['user_admin_role']['#value'] =
+          $form['admin_role']['user_admin_role']['#default_value'];
+      }
+    }
+  }
+
+  // If we're on the Features admin form, hide some Features which we don't
+  // want site admins to see unnecessarily.
+  if (module_exists('features') && ($form_id == 'features_admin_form')) {
+    // Hide selected features from view.
+    $features_to_hide = variable_get('greyhead_customisations_hidden_features', greyhead_customisations_hidden_features_defaults());
+
+    // Set a flag so we know if any have been hidden.
+    $features_hidden = 0;
+
+    foreach ($features_to_hide as $feature) {
+      if (array_key_exists($feature, $form)) {
+        $features_hidden++;
+        $form[$feature]['#access'] = FALSE;
+      }
+    }
+
+    // If any features have been hidden, and the user has access to edit the
+    // module's settings, add Feature group IDs to allow UI-based determining of
+    // show a message.
+    if (user_access('administer greyhead customisations') && ($features_hidden > 0)) {
+      foreach (element_children($form) as $form_elephant) {
+        if (array_key_exists('state', $form[$form_elephant]) &&
+          array_key_exists('#group', $form[$form_elephant])
+        ) {
+          $form[$form_elephant]['#title'] .= ' [' . $form_elephant . ']';
+        }
+      }
+
+      drupal_set_message(t('Some less-frequently-used Features on this page have been hidden to reduce clutter. !settings_link.', [
+        '!settings_link' => l(t('You can choose which groups are hidden here'), 'admin/config/site-customisations'),
+      ]), 'status', FALSE);
+    }
+  }
+
+  //  // Make searches submit via GET.
+  //  if ($form_id == 'search_block_form') {
+  //    $form['#method'] = 'get';
+  //    $form['#action'] = 'search/node';
+  //  }
+
+  // User edit form alterations.
+  if ($form_id == 'user_profile_form') {
+    // On the user edit form, if isset($_GET['pass-reset-token']), add a
+    // submit handler which redirects back to the user's profile page.
+    if (isset($_GET['pass-reset-token'])) {
+      $form['#submit'][] = 'greyhead_customisations_user_edit_form_redirect_to_user_view';
+    }
+  }
+}
+
+/**
+ * Get the default list of groups of Features which we want to hide.
+ *
+ * @return array
+ */
+function greyhead_customisations_hidden_features_defaults() {
+  return [
+    'package_bootstrap',
+    'package_development',
+    'package_features',
+    'package_flexslider',
+    'package_media',
+    'package_migration',
+    'package_schema-org',
+    'package_testing',
+    'package_twitter',
+  ];
+}
+
+/**
+ * Implements hook_module_implements_alter.
+ *
+ * Move the Greyhead Customisations module to run last, mainly for form-altering
+ * goodness.
+ *
+ * @param $implementations
+ * @param $hook
+ */
+function greyhead_customisations_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'form_alter') {
+    // Move all hooks for this module to the end of the list. module_implements()
+    // iterates through $implementations with a foreach loop which PHP iterates
+    // in the order that the items were added, so to move an item to the end of
+    // the array, we remove it and then add it.
+    if (array_key_exists('greyhead_customisations', $implementations)) {
+      $group = $implementations['greyhead_customisations'];
+      unset($implementations['greyhead_customisations']);
+      $implementations['greyhead_customisations'] = $group;
+    }
+  }
+}
+
+/**
+ * Implements hook_custom_theme
+ */
+function greyhead_customisations_custom_theme() {
+  // Force the Seven theme when using imagecrop.
+  if (substr(current_path(), 0, strlen('imagecrop')) == 'imagecrop') {
+    return variable_get('admin_theme', 'seven');
+  }
+
+  // Force the Seven theme when editing your user account.
+  if ((arg(0) == 'user') && is_numeric(arg(1)) && (arg(2) == 'edit')) {
+    return variable_get('admin_theme', 'seven');
+  }
+}
+
+/**
+ * Implements hook_preprocess_search_result().
+ *
+ * Hide the author name from search results if the administrator has chosen to
+ * do so in the module's config page.
+ */
+function greyhead_customisations_preprocess_search_result(&$variables) {
+  if (variable_get('greyhead_customisations_hide_author_on_search_results')) {
+    unset($variables['info_split']['user']);
+    $variables['info'] = implode(' - ', $variables['info_split']);
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function greyhead_customisations_menu() {
+  $items = [];
+
+  $items['admin/config/site-customisations'] = [
+    'title' => 'Site customisations settings',
+    'access callback' => 'greyhead_customisations_admin_overview_access',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => ['greyhead_customisations_admin'],
+    'type' => MENU_NORMAL_ITEM,
+  ];
+
+  $items['admin/config/site-customisations/site-customisations'] = [
+    'title' => 'Customisations settings',
+    'access arguments' => ['administer greyhead customisations'],
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  ];
+
+  $items['admin/config/site-customisations/site-name-slogan'] = [
+    'title' => 'Site name and slogan',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => ['greyhead_customisations_admin_site_name_slogan'],
+    'access callback' => 'greyhead_customisations_admin_overview_access',
+    //    'access arguments' => ['change site name and slogan in greyhead customisations'],
+    'type' => MENU_LOCAL_TASK,
+  ];
+
+  return $items;
+}
+
+/**
+ * Check if the current user has access to the site name/slogan page.
+ *
+ * Returns TRUE if the user has any of 'administer greyhead customisations',
+ * 'change site name and slogan in greyhead customisations' permissions or
+ * 'administer site configuration'.
+ *
+ * @return bool
+ */
+function greyhead_customisations_admin_overview_access() {
+  return user_access('administer greyhead customisations') || user_access('change site name and slogan in greyhead customisations') || user_access('administer site configuration');
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function greyhead_customisations_menu_alter(&$items) {
+  // If the robotstxt and greyhead_environment_warning modules are enabled,
+  // and we're not on a production site, override the robots.txt menu callback.
+  if (!empty($items['robots.txt'])
+    && module_exists('greyhead_environment_warning')) {
+    $items['robots.txt']['page callback'] = 'greyhead_customisations_robotstxt_page_callback';
+  }
+}
+
+/**
+ * Implements hook_permission().
+ */
+function greyhead_customisations_permission() {
+  $permissions = [
+    'administer greyhead customisations' => [
+      'title' => t('Administer Greyhead Customisations'),
+      'description' => t('Additional options for configuring your Drupal website.'),
+    ],
+    'change site name and slogan in greyhead customisations' => [
+      'title' => t('Change site name and slogan'),
+      'description' => t("Allows a user to change a site's name and slogan without granting them access to change the site e-mail address, homepage, 404/3 pages, etc."),
+    ],
+  ];
+
+  return $permissions;
+}
+
+/**
+ * Returns the Greyhead Customisations settings form.
+ *
+ * @return mixed
+ */
+function greyhead_customisations_admin() {
+  $form = [];
+
+  $form['additional_body_classes'] = [
+    '#type' => 'fieldset',
+    '#title' => t('Additional body classes'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  ];
+
+  $form['additional_body_classes']['greyhead_customisations_custom_body_classes'] = [
+    '#type' => 'textfield',
+    '#title' => t('Add classes to the body tag'),
+    '#description' => t('Enter one or more class names, separated with a space, to add classes to the body tag. You can do this, for example, when you have some CSS or Javascript which needs to check for a particular body class.'),
+    '#default_value' => variable_get('greyhead_customisations_custom_body_classes'),
+  ];
+
+  $form['search_customisations'] = [
+    '#type' => 'fieldset',
+    '#title' => t('Search customisations'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  ];
+
+  $form['search_customisations']['greyhead_customisations_hide_author_on_search_results'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Hide author name from search results?'),
+    '#description' => t('If you check this box, the author\'s name will not be shown in search results. The default behaviour is unchecked - show the author name.'),
+    '#default_value' => variable_get('greyhead_customisations_hide_author_on_search_results'),
+  ];
+
+  $form['greyhead_customisations_remove_double_slashes'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Remove double-slashes in URLs?'),
+    '#description' => t('Checking this box will redirect visitors to the site who request pages with a double-slash to the URL with double slashes replaced by single slashes.'),
+    '#default_value' => variable_get('greyhead_customisations_remove_double_slashes', FALSE),
+  ];
+
+  $form['overridden_variables'] = [
+    '#type' => 'fieldset',
+    '#title' => t('Overridden variable warnings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  ];
+
+  $form['overridden_variables']['greyhead_customisations_overridden_variables_excluded_forms'] = [
+    '#type' => 'textarea',
+    '#rows' => 8,
+    '#title' => t('Exclude overridden variable warnings on these forms'),
+    '#description' => t('To disable warnings about overridden variables on selected forms, enter their form IDs here in the form "form_id", one per line. The form ID can be found in the id attribute of the <form> HTML tag, with hyphens replaced by underscores. For example, in the HTML tag &lt;form id="homepage-node-form" /&gt; the form ID is <em>homepage_node_form</em>.'),
+    '#default_value' => trim(implode("\n", variable_get('greyhead_customisations_overridden_variables_excluded_forms', []))) . "\r\n",
+    '#element_validate' => ['greyhead_customisations_overridden_variables_excluded_forms_field_validate'],
+  ];
+
+  $form['hidden_features'] = [
+    '#type' => 'fieldset',
+    '#title' => t('Hide less-frequently-used Features'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  ];
+
+  $form['hidden_features']['greyhead_customisations_hidden_features'] = [
+    '#type' => 'textarea',
+    '#rows' => 8,
+    '#title' => t('Hide the following Features groups from the Features page'),
+    '#description' => t('To hide a group (tab) of Features on the Features administration page, enter the group\'s machine name here. The group machine name is shown after the group\'s name, in brackets.'),
+    '#default_value' => trim(implode("\n", variable_get('greyhead_customisations_hidden_features', greyhead_customisations_hidden_features_defaults()))) . "\r\n",
+    '#element_validate' => ['greyhead_customisations_hidden_features_field_validate'],
+    '#states' => [
+      'visible' => [
+        ':input[name="greyhead_customisations_hidden_features_reset"]' => [
+          'checked' => FALSE,
+        ],
+      ],
+    ],
+  ];
+
+  $form['hidden_features']['greyhead_customisations_hidden_features_reset'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Reset to defaults?'),
+    '#description' => t('Check this box to reset the hidden Features to default settings.'),
+    '#default_value' => FALSE,
+  ];
+
+  return system_settings_form($form);
+}
+
+/**
+ * Allows a user to edit the site name and slogan.
+ *
+ * This form allows an administrator to delegate permission to change a
+ * site's name and slogan without granting them access to
+ * change the site e-mail address, homepage, 404/3 pages, etc.
+ *
+ * @return mixed
+ */
+function greyhead_customisations_admin_site_name_slogan() {
+  $form = [];
+
+  $form['site_name'] = [
+    '#type' => 'textfield',
+    '#title' => t('Site name'),
+    '#default_value' => variable_get('site_name', 'Drupal'),
+    '#required' => TRUE,
+  ];
+
+  $form['site_slogan'] = [
+    '#type' => 'textfield',
+    '#title' => t('Slogan'),
+    '#default_value' => variable_get('site_slogan', ''),
+    '#description' => t("How this is used depends on your site's theme."),
+  ];
+
+  return system_settings_form($form);
+}
+
+/**
+ * Custom validation for the overridden variaboos field.
+ *
+ * @param $form
+ * @param $form_state
+ */
+function greyhead_customisations_overridden_variables_excluded_forms_field_validate($element, &$form_state, $form) {
+  // $form_state['values']['greyhead_customisations_hidden_features'] will
+  // contain a string from the textarea. Explode that string into an array on
+  // "\n" and save that variable, then unset it.
+  $excluded_forms = $form_state['values']['greyhead_customisations_overridden_variables_excluded_forms'];
+
+  // Normalise our line endings. Thanks, http://stackoverflow.com/a/7836692 :)
+  $excluded_forms = preg_replace('~(*BSR_ANYCRLF)\R~', "\r\n", $excluded_forms);
+
+  $excluded_forms = trim(check_plain($excluded_forms));
+  $excluded_forms_array = empty($excluded_forms) ? [] : explode("\r\n", $excluded_forms);
+
+  // Trim each feature group to remove trailing "\r"s of doom.
+  foreach ($excluded_forms_array as &$hidden_feature) {
+    $hidden_feature = trim($hidden_feature);
+  }
+
+  variable_set('greyhead_customisations_overridden_variables_excluded_forms', $excluded_forms_array);
+
+  // Remove the no-longer-needed values from the submitted values.
+  unset($form_state['values']['greyhead_customisations_overridden_variables_excluded_forms']);
+}
+
+/**
+ * Custom validation for the hidden features field.
+ *
+ * @param $form
+ * @param $form_state
+ */
+function greyhead_customisations_hidden_features_field_validate($element, &$form_state, $form) {
+  // Have we been asked to reset this field's values?
+  $reset = $form_state['values']['greyhead_customisations_hidden_features_reset'];
+
+  if ($reset) {
+    $hidden_features_array = greyhead_customisations_hidden_features_defaults();
+  }
+  else {
+    // $form_state['values']['greyhead_customisations_hidden_features'] will
+    // contain a string from the textarea. Explode that string into an array on
+    // "\n" and save that variable, then unset it.
+    $hidden_features = $form_state['values']['greyhead_customisations_hidden_features'];
+
+    // Normalise our line endings. Thanks, http://stackoverflow.com/a/7836692 :)
+    $hidden_features = preg_replace('~(*BSR_ANYCRLF)\R~', "\r\n", $hidden_features);
+
+    $hidden_features = trim(check_plain($hidden_features));
+    $hidden_features_array = empty($hidden_features) ? [] : explode("\r\n", $hidden_features);
+
+    // Trim each feature group to remove trailing "\r"s of doom.
+    foreach ($hidden_features_array as &$hidden_feature) {
+      $hidden_feature = trim($hidden_feature);
+    }
+  }
+
+  variable_set('greyhead_customisations_hidden_features', $hidden_features_array);
+
+  // Remove the no-longer-needed values from the submitted values.
+  unset($form_state['values']['greyhead_customisations_hidden_features'],
+    $form_state['values']['greyhead_customisations_hidden_features_reset']);
+}
+
+/**
+ * Allows the dynamic creation of an image style which can be used to produce
+ * multiple variants of images on the server. This saves us from having to re-
+ * size images many times in Potatoshop.
+ *
+ * @TODO: find a way to make this work with images in the Drupal directory
+ *   which _aren't_ in the files directory. Will it work straight off? Ref
+ *   image_style_url() image_style_path()
+ *
+ * @param $width
+ * @param $height
+ *
+ * @return bool|string
+ */
+function greyhead_customisations_create_dynamic_scale_and_crop($width, $height) {
+  if (!is_numeric($width) || !is_numeric($height)) {
+    drupal_set_message(t('greyhead_customisations_create_dynamic_scale_and_crop($width, $height) requires integer values for width and height.'), 'error');
+    return FALSE;
+  }
+
+  $name = 'greyhead_customisations_dynamic_scale_and_crop_' . $width . 'x' . $height;
+
+  // Check if the style already exists.
+  $style = image_style_load($name);
+
+  if (empty($style)) {
+    // Create and save the style.
+    $style = image_style_save([
+      'name' => $name,
+      'label' => 'Greyhead dynamic scale and crop (' . $width . ' x ' . $height . ')',
+    ]);
+
+    $effect = [
+      'name' => 'image_scale_and_crop',
+      'data' => [
+        'width' => $width,
+        'height' => $height,
+      ],
+      'isid' => $style['isid'],
+    ];
+
+    image_effect_save($effect);
+  }
+
+  // Send back the style name.
+  return $name;
+}
+
+/**
+ * Implements greyhead_customisations_child_page_alter.
+ *
+ * @param $result    array The child page result array.
+ * @param $menu_link array The menu link to which this child page relates.
+ * @param $node      NULL|object If the child link is a node, this will be an
+ *   object.
+ */
+function greyhead_customisations_greyhead_customisations_child_page_alter(&$result, $menu_link, $node) {
+  // Add the child page's URL as a class to the child item to give us some
+  // ability to target individual items.
+  $result['class'] .= ' child-page-path--' . greyhead_customisations_get_class_from_url(drupal_get_path_alias($menu_link['link_path']));
+
+  // Are we viewing a node?
+  if (is_object($node)) {
+    // If there is no description for the page, and a Metatags description has
+    // been set, use that.
+    if (empty($result['summary']) && isset($node->metatags,
+        $node->metatags[LANGUAGE_NONE],
+        $node->metatags[LANGUAGE_NONE]['description'],
+        $node->metatags[LANGUAGE_NONE]['description']['value'])
+    ) {
+      $result['summary'] = $node->metatags[LANGUAGE_NONE]['description']['value'];
+    }
+  }
+}
+
+/**
+ * Implements hook_html_head_alter.
+ *
+ * @param $head_elements
+ */
+function greyhead_customisations_html_head_alter(&$head_elements) {
+  // Remove the Generator meta tag.
+  unset($head_elements['system_meta_generator']);
+
+  // Remove default favicon.
+  global $base_url;
+  $default_favicon_element = 'drupal_add_html_head_link:shortcut icon:' . $base_url . '/misc/favicon.ico';
+  unset($head_elements[$default_favicon_element]);
+}
+
+/**
+ * Implements hook_clone_node_alter().
+ */
+function greyhead_customisations_clone_node_alter(&$node, $context) {
+  /**
+   * When cloning nodes which use Workbench Moderation, set the node's
+   * moderation state to "draft" to prevent an EntityMalformedException.
+   *
+   * @see https://www.drupal.org/node/2501357 and
+   * https://www.drupal.org/node/2501357#comment-10822096 for this solution.
+   */
+  if (isset($node->workbench_moderation)) {
+    $node->workbench_moderation['published']
+      = $node->workbench_moderation['current']->unpublishing = NULL;
+    //    $node->workbench_moderation = 0;
+  }
+}
+
+/**
+ * Implements hook_node_presave.
+ *
+ * This function clears cached geolocation data, as the geolocation module is
+ * full of bugs and doesn't reliably update geolocations. Gah.
+ */
+function greyhead_customisations_node_presave($node) {
+  if (module_exists('geocoder')) {
+    if (db_table_exists('cache_geocoder')) {
+      db_truncate('cache_geocoder')->execute();
+    }
+  }
+}
+
+/**
+ * Implements hook_field_widget_form_alter().
+ *
+ * Make alt text on image fields mandatory where present.
+ */
+function greyhead_customisations_field_widget_form_alter(&$element, &$form_state, $context) {
+  $widget_type = $context['instance']['widget']['type'];
+
+  // Image fields.
+  if (in_array($widget_type, ['image_image', 'image', 'media'], TRUE)) {
+    foreach (element_children($element) as $delta) {
+      // Add a call to our process function to make the alt text field
+      // mandatory.
+      $element[$delta]['#process'][] = 'greyhead_customisations_image_field_alt_text_required_process';
+    }
+  }
+
+  // Media module image fields.
+  if (!empty($element['#field_name']) && ($element['#field_name'] == 'field_file_image_alt_text')) {
+    if (!empty($element['value'])) {
+      $element['value']['#required'] = TRUE;
+
+      if (empty($element['value']['#default_value'])) {
+        $element['value']['#default_value'] = t('No alternative text provided');
+      }
+    }
+  }
+}

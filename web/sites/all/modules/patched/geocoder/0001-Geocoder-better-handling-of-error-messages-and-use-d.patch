@@ -1,0 +1,45 @@
+From 3f68e9811a6edf08fd65751758474acc472f16c7 Mon Sep 17 00:00:00 2001
+From: Alex Harries <alex@greyhead.co.uk>
+Date: Tue, 23 Feb 2016 18:46:34 +0000
+Subject: [PATCH] Geocoder: better handling of error messages, and use double
+ quotes if you want to use linebreaks such as \n :o)
+
+Signed-off-by: Alex Harries <alex@greyhead.co.uk>
+---
+ .../modules/contrib/geocoder/plugins/geocoder_handler/google.inc | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/plugins/geocoder_handler/google.inc b/plugins/geocoder_handler/google.inc
+index 59bfd7d..aa788f0 100644
+--- a/plugins/geocoder_handler/google.inc
++++ b/plugins/geocoder_handler/google.inc
+@@ -105,7 +105,8 @@ function geocoder_google($address, $options = array()) {
+         '@code' => $result->code,
+         '@error' => $result->error,
+       );
+-      $msg = t('HTTP request to google API failed.\nCode: @code\nError: @error', $args);
++      $msg = t("HTTP request to google API failed.\nCode: @code\nError: @error", $args);
++      drupal_set_message(t($msg, $args), 'error');
+       throw new Exception($msg, WATCHDOG_ERROR);
+     }
+
+@@ -113,12 +114,14 @@ function geocoder_google($address, $options = array()) {
+
+     if ($data->status == 'ZERO_RESULTS') {
+       $args = array('@status' => $data->status, '@address' => $address);
+-      $msg = t('Google API returned zero results on @address status.\nStatus: @status', $args);
++      $msg = t("Google API returned zero results on @address status.\nStatus: @status", $args);
++      drupal_set_message(t($msg, $args), 'error');
+       throw new Exception($msg, WATCHDOG_NOTICE);
+     }
+     elseif ($data->status != 'OK') {
+       $args = array('@status' => $data->status);
+-      $msg = t('Google API returned bad status.\nStatus: @status', $args);
++      $msg = t("Google API returned bad status.\nStatus: @status:", $args);
++      drupal_set_message(t($msg, $args), 'error');
+       throw new Exception($msg, WATCHDOG_WARNING);
+     }
+
+--
+2.5.4 (Apple Git-61)
+

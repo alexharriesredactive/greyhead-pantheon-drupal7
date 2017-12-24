@@ -1,0 +1,43 @@
+<?php
+
+function splash_entity_info_alter(&$entity_info) {
+
+  $entity_info['node']['view modes']['latest_content'] = array(
+    'label' => t('Latest Content'),
+    'custom settings' => TRUE,
+  );
+  $entity_info['node']['view modes']['winner'] = array(
+    'label' => t('Winner'),
+    'custom settings' => TRUE,
+  );
+  $entity_info['node']['view modes']['carousel'] = array(
+    'label' => t('Carousel'),
+    'custom settings' => TRUE,
+  );
+  $entity_info['node']['view modes']['splash_one_vertical'] = array(
+    'label' => t('Splash one article with vertical text'),
+    'custom settings' => TRUE,
+  );
+  $entity_info['node']['view modes']['splash_one_horizontal'] = array(
+    'label' => t('Splash one article with horizontal text'),
+    'custom settings' => TRUE,
+  );
+  $entity_info['node']['view modes']['splash_three_main'] = array(
+    'label' => t('Splash main article from three articles'),
+    'custom settings' => TRUE,
+  );
+  $entity_info['node']['view modes']['splash_three_top'] = array(
+    'label' => t('Splash top article from three articles'),
+    'custom settings' => TRUE,
+  );
+  $entity_info['node']['view modes']['splash_three_bottom'] = array(
+    'label' => t('Splash bottom article from three articles'),
+    'custom settings' => TRUE,
+  );
+  $entity_info['node']['view modes']['splash_one_carousel'] = array(
+    'label' => t('Splash one article with carousel of shortlisted books'),
+    'custom settings' => TRUE,
+  );
+} 
+
+?>
