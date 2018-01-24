@@ -2,7 +2,7 @@ name = Greyhead Bootstrap theme
 description = Use this sub-theme to apply common theme customisations; add project-specific customisations in the {{projectname}}_bootstrap_subtheme specific to your project.
 core = 7.x
 base theme = bootstrap
-version = "7.x-1.1-20160925"
+version = "7.x-1.2-20180124"
 core = "7.x"
 project = "greyhead_bootstrap"
 
