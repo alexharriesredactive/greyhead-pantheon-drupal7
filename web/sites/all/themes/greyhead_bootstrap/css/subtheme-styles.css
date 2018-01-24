@@ -7703,11 +7703,11 @@ html.js .navbar-header .showhideable-target .navbar-nav > .open > a:hover,
 html.js footer.footer .navbar-nav > .open > a:hover,
 html.js .navbar-header .showhideable-target .navbar-nav > .open > a:focus,
 html.js footer.footer .navbar-nav > .open > a:focus {
-  color: #fff;
+  color: #888;
 }
 html.js .navbar-header .showhideable-target .form-control,
 html.js footer.footer .form-control {
-  color: #fff;
+  color: #888;
   background-color: #222;
   border-color: #555;
 }
