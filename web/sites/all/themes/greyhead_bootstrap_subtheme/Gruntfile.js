@@ -1,5 +1,5 @@
 module.exports = function (grunt) {
-  require('jit-grunt')(grunt);
+  //require('jit-grunt')(grunt);
 
   grunt.initConfig({
     bless: {
@@ -10,7 +10,7 @@ module.exports = function (grunt) {
         },
         files: {
           // Target-specific file lists and/or options go here.
-          'css/subsubtheme-styles-split.css': 'css/subsubtheme-styles.css'
+          'css/subtheme-styles-split.css': 'css/subtheme-styles.css'
         }
       }
     },
@@ -24,7 +24,7 @@ module.exports = function (grunt) {
           optimization: 0
         },
         files: {
-          "css/subsubtheme-styles.css": "less/subsubtheme-styles.less" // destination file and source file
+          "css/subtheme-styles.css": "less/subtheme-styles.less" // destination file and source file
         }
       },
       //production: {
@@ -36,7 +36,7 @@ module.exports = function (grunt) {
       //    optimization: 0
       //  },
       //  files: {
-      //    "css/subsubtheme-styles.css": "less/subsubtheme-styles.less" // destination file and source file
+      //    "css/subtheme-styles.css": "less/subtheme-styles.less" // destination file and source file
       //  }
       //}
     },
@@ -51,6 +51,10 @@ module.exports = function (grunt) {
     }
   });
 
-  grunt.loadNpmTasks('grunt-bless');
-  grunt.registerTask('default', ['less', 'bless', 'watch']);
+  //grunt.loadNpmTasks('grunt-bless');
+  grunt.loadNpmTasks('grunt-contrib-less');
+  grunt.loadNpmTasks('grunt-contrib-watch');
+
+  // grunt.registerTask('default', ['less', 'bless', 'watch']);
+  grunt.registerTask('default', ['less', 'watch']);
 };
