@@ -6901,7 +6901,7 @@ body #admin-menu .dropdown li {
 .modal-backdrop {
   z-index: 1610;
 }
-.footer {
+footer.footer {
   margin-top: 45px;
   padding-top: 35px;
   padding-bottom: 36px;
@@ -7334,7 +7334,7 @@ td.radio {
   font-size: 100%;
   color: #666666;
 }
-.views-display-settings .footer {
+.views-display-settings footer.footer {
   padding: 0;
   margin: 4px 0 0 0;
 }
