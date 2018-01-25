@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * Constants.
+ */
+defined('DEFAULT_DOMAIN') || define('DEFAULT_DOMAIN', 'greyhead.co.uk');
+
+/**
  * We need to know Drupal's root, but if we're in Drush, the DRUPAL_ROOT isn't
  * defined because Drush shuffles the order in which Drupal is bootstrapped.
  *
