@@ -78,3 +78,10 @@ function greyheadprofile_install() {
   // @TODO: create sample paragraphs page for homepage with images, carousel, and other whizzbangery.
   // @TODO: can we change the installation theme?
 }
+
+/**
+ * Enable the greyhead_form_logger module.
+ */
+function greyheadprofile_update_7101() {
+  module_enable(['greyhead_form_logger']);
+}
