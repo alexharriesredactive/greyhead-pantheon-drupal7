@@ -931,3 +931,42 @@ function greyhead_customisations_user_edit_form_redirect_to_user_view() {
 function greyhead_customisations_site_directory() {
   return defined('SITE_MACHINE_NAME') ? SITE_MACHINE_NAME : NULL;
 }
+
+/**
+ * If a form has been submitted on a page which has a "d" parameter, redirect.
+ *
+ * We use this function to allow $_GET['d'] to be an alias of
+ * $_GET['destination'] (purely so we can be lazy and type /user?d=<path>
+ * instead of having to type "destination", since "estination" is a pesky
+ * combination of characters (and, more importantly, I'm lazy).
+ *
+ * This function is designed to be called during form processing before
+ * drupal_redirect_form() is called; that function contains important logic
+ * to determine when we should redirect which we don't want to skip or
+ * replicate.
+ *
+ * @param null|string $d
+ *   The path to redirect to.
+ */
+function greyhead_customisations_d_redirector($d = NULL) {
+  // Typical usage for this function is to get the path to redirect to from
+  // $_GET['d'], but you can also pass a string into this function. However,
+  // if you don't pass a string in, we have to confirm that $_GET['d'] is set
+  // and not empty.
+  if (is_null($d)) {
+    if (!empty($_GET['d'])) {
+      $d = $_GET['d'];
+    }
+    else {
+      return;
+    }
+  }
+
+  // $_GET['d'] is set - override $_GET['destination'] and call
+  // drupal_redirect_form().
+  $_GET['destination'] = $_GET['d'];
+
+  // This function doesn't need to do anything more as drupal_redirect_form()
+  // will now issue a redirect if appropriate (e.g. if it's not a
+  // programmatically-submitted form, etc).
+}
