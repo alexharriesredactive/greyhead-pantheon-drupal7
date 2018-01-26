@@ -9,9 +9,9 @@
  */
 function paragraph_page_taxonomy_default_vocabularies() {
   return array(
-    'tags' => array(
+    'parapg_contentlist_tags' => array(
       'name' => 'Tags',
-      'machine_name' => 'tags',
+      'machine_name' => 'parapg_contentlist_tags',
       'description' => 'You can "tag" content with keywords or custom text, for example to build custom content list paragraphs.',
       'hierarchy' => 0,
       'module' => 'taxonomy',

@@ -75,7 +75,7 @@ function paragraph_page_views_default_views() {
   $handler->display->display_options['arguments']['tid']['specify_validation'] = TRUE;
   $handler->display->display_options['arguments']['tid']['validate']['type'] = 'taxonomy_term';
   $handler->display->display_options['arguments']['tid']['validate_options']['vocabularies'] = array(
-    'tags' => 'tags',
+    'parapg_contentlist_tags' => 'parapg_contentlist_tags',
   );
   $handler->display->display_options['arguments']['tid']['validate_options']['type'] = 'convert';
   $handler->display->display_options['arguments']['tid']['reduce_duplicates'] = TRUE;

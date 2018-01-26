@@ -1845,7 +1845,7 @@ function paragraph_page_field_default_field_bases() {
     'settings' => array(
       'allowed_values' => array(
         0 => array(
-          'vocabulary' => 'tags',
+          'vocabulary' => 'parapg_contentlist_tags',
           'parent' => 0,
         ),
       ),
