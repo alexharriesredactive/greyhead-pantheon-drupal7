@@ -297,6 +297,12 @@ function greyhead_customisations_form_alter(&$form, $form_state, $form_id) {
       $form['#submit'][] = 'greyhead_customisations_user_edit_form_redirect_to_user_view';
     }
   }
+
+  // If the URL contains a d=<path> parameter, add a submit handler which
+  // redirects to that path same as ?destination=
+  if (!empty($_GET['d'])) {
+    $form['#submit'][] = 'greyhead_customisations_d_redirector';
+  }
 }
 
 /**
