@@ -3075,6 +3075,135 @@ function paragraph_page_field_default_field_instances() {
     ),
   );
 
+  // Exported field_instance:
+  // 'paragraphs_item-image_with_optional_caption-field_parapg_image_w_caption_cap'.
+  $field_instances['paragraphs_item-image_with_optional_caption-field_parapg_image_w_caption_cap'] = array(
+    'bundle' => 'image_with_optional_caption',
+    'default_value' => NULL,
+    'deleted' => 0,
+    'description' => 'Display an optional caption underneath your image.',
+    'display' => array(
+      'default' => array(
+        'label' => 'hidden',
+        'module' => 'text',
+        'settings' => array(),
+        'type' => 'text_default',
+        'weight' => 1,
+      ),
+      'paragraphs_editor_preview' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+    ),
+    'entity_type' => 'paragraphs_item',
+    'fences_wrapper' => 'div_div_div',
+    'field_name' => 'field_parapg_image_w_caption_cap',
+    'label' => 'Caption',
+    'required' => 0,
+    'settings' => array(
+      'better_formats' => array(
+        'allowed_formats' => array(
+          'full_html' => 'full_html',
+          'plain_text' => 'plain_text',
+        ),
+        'allowed_formats_toggle' => 0,
+        'default_order_toggle' => 0,
+        'default_order_wrapper' => array(
+          'formats' => array(
+            'full_html' => array(
+              'weight' => -10,
+            ),
+            'plain_text' => array(
+              'weight' => 10,
+            ),
+          ),
+        ),
+      ),
+      'text_processing' => 0,
+      'user_register_form' => FALSE,
+    ),
+    'widget' => array(
+      'active' => 1,
+      'module' => 'text',
+      'settings' => array(
+        'size' => 60,
+      ),
+      'type' => 'text_textfield',
+      'weight' => 2,
+    ),
+  );
+
+  // Exported field_instance:
+  // 'paragraphs_item-image_with_optional_caption-field_parapg_image_w_caption_img'.
+  $field_instances['paragraphs_item-image_with_optional_caption-field_parapg_image_w_caption_img'] = array(
+    'bundle' => 'image_with_optional_caption',
+    'deleted' => 0,
+    'description' => 'If your image is wider than the page content, it will be scaled down.',
+    'display' => array(
+      'default' => array(
+        'label' => 'hidden',
+        'module' => 'image',
+        'settings' => array(
+          'image_link' => '',
+          'image_style' => 'paragraph-fit-within-1200x1200',
+        ),
+        'type' => 'image',
+        'weight' => 0,
+      ),
+      'paragraphs_editor_preview' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+    ),
+    'entity_type' => 'paragraphs_item',
+    'fences_wrapper' => 'div_div_div',
+    'field_name' => 'field_parapg_image_w_caption_img',
+    'label' => 'Image',
+    'required' => 1,
+    'settings' => array(
+      'alt_field' => 0,
+      'default_image' => 0,
+      'file_directory' => 'paragraph-page/image-with-caption',
+      'file_extensions' => 'png gif jpg jpeg',
+      'max_filesize' => '',
+      'max_resolution' => '',
+      'min_resolution' => '',
+      'title_field' => 0,
+      'user_register_form' => FALSE,
+      'wysiwyg_insert' => 0,
+    ),
+    'widget' => array(
+      'active' => 1,
+      'module' => 'media',
+      'settings' => array(
+        'allowed_schemes' => array(
+          'private' => 0,
+          'public' => 'public',
+        ),
+        'allowed_types' => array(
+          'audio' => 0,
+          'document' => 0,
+          'image' => 'image',
+          'video' => 0,
+        ),
+        'browser_plugins' => array(
+          'media_browser_plus--media_browser_my_files' => 0,
+          'media_browser_plus--media_browser_thumbnails' => 0,
+          'media_default--media_browser_1' => 0,
+          'media_default--media_browser_my_files' => 0,
+          'media_internet' => 0,
+          'upload' => 0,
+        ),
+      ),
+      'type' => 'media_generic',
+      'weight' => 1,
+    ),
+  );
+
   // Exported field_instance: 'paragraphs_item-images-field_paragraph_images'.
   $field_instances['paragraphs_item-images-field_paragraph_images'] = array(
     'bundle' => 'images',
@@ -4953,6 +5082,7 @@ function paragraph_page_field_default_field_instances() {
   t('Add one or more slides to this carousel. Each slide should contain an image to be shown on desktop-sized screens, an image for mobile screens (typically in portrait orientation), and an optional URL to another page on this site to link the images to. Images will be scaled to fit within a pre-defined size, so for consistency, you should ensure all desktop-sized images are the same dimensions, and that all mobile-sized images have equal dimensions, too.');
   t('Address');
   t('Below-images caption');
+  t('Caption');
   t('Carousel slides');
   t('Carousel width');
   t('Choose how wide the image should be in relation to the full-width of the page. Note that the image will be placed above or below the text on smaller screens such as mobile phones.');
@@ -4972,6 +5102,7 @@ function paragraph_page_field_default_field_instances() {
   t('Contact information');
   t('Date');
   t('Desktop-sized image');
+  t('Display an optional caption underneath your image.');
   t('Divide links into columns');
   t('E-mail address');
   t('E-mail title');
@@ -4994,6 +5125,7 @@ function paragraph_page_field_default_field_instances() {
   t('If more items of content are found than the total number you wish to display, you can show links below the content to allow site users to view more results.');
   t('If you want to create a jump link but not show it at the top of the page, un-tick this box.');
   t('If you would like to only show content which has been "tagged" with a particular tag, enter the tag here. For example, if you have a collection of pages tagged with "news", enter "news" here and only those pages will be shown.');
+  t('If your image is wider than the page content, it will be scaled down.');
   t('Image');
   t('Image ratio');
   t('Image side');

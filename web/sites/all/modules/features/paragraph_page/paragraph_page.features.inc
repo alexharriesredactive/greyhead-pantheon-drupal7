@@ -384,6 +384,11 @@ function paragraph_page_paragraphs_info() {
       'bundle' => 'image_carousel',
       'locked' => '1',
     ),
+    'image_with_optional_caption' => array(
+      'name' => 'Image with optional caption',
+      'bundle' => 'image_with_optional_caption',
+      'locked' => '1',
+    ),
     'images' => array(
       'name' => 'Images',
       'bundle' => 'images',

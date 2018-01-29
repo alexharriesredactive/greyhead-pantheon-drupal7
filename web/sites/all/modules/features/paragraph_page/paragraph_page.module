@@ -604,6 +604,12 @@ function paragraph_page_theme() {
     'path' => drupal_get_path('module', 'paragraph_page') . '/templates',
   ];
 
+  $theme['paragraphs_item__image_with_optional_caption'] = [
+    'render element' => 'elements',
+    'template' => 'paragraphs-item--image-with-optional-caption',
+    'path' => drupal_get_path('module', 'paragraph_page') . '/templates',
+  ];
+
   $theme['node__paragraph_page'] = [
     'render element' => 'content',
     'base hook' => 'node',
