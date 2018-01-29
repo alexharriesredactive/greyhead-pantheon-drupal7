@@ -3144,12 +3144,18 @@ function paragraph_page_field_default_field_instances() {
     'display' => array(
       'default' => array(
         'label' => 'hidden',
-        'module' => 'image',
+        'module' => 'colorbox',
         'settings' => array(
-          'image_link' => '',
-          'image_style' => 'paragraph-fit-within-1200x1200',
+          'colorbox_caption' => 'none',
+          'colorbox_caption_custom' => '',
+          'colorbox_gallery' => 'page',
+          'colorbox_gallery_custom' => '',
+          'colorbox_image_style' => 'paragraph-fit-within-1200x1200',
+          'colorbox_multivalue_index' => NULL,
+          'colorbox_node_style' => 'up-to-600-high',
+          'colorbox_node_style_first' => '',
         ),
-        'type' => 'image',
+        'type' => 'colorbox',
         'weight' => 0,
       ),
       'paragraphs_editor_preview' => array(

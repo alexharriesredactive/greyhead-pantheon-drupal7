@@ -232,6 +232,7 @@ features[image][] = paragraph_promo_image_3to1
 features[image][] = paragraph_promo_image_3to4
 features[image][] = paragraph_promo_image_4to1
 features[image][] = paragraph_promo_image_4to3
+features[image][] = up-to-600-high
 features[node][] = paragraph_page
 features[paragraphs][] = address
 features[paragraphs][] = back_to_top_link
