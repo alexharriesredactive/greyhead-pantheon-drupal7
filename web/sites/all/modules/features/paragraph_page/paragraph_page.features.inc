@@ -303,6 +303,22 @@ function paragraph_page_image_default_styles() {
     ),
   );
 
+  // Exported image style: up-to-600-high.
+  $styles['up-to-600-high'] = array(
+    'label' => 'Paragraph - less than 600 high',
+    'effects' => array(
+      1 => array(
+        'name' => 'image_scale',
+        'data' => array(
+          'width' => '',
+          'height' => 600,
+          'upscale' => 0,
+        ),
+        'weight' => 1,
+      ),
+    ),
+  );
+
   return $styles;
 }
 
