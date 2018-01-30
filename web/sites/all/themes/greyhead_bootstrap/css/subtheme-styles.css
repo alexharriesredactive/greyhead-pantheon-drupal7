@@ -7509,8 +7509,12 @@ html.js .only-visible-with-js,
 html.js .only-visible-without-js {
   display: none;
 }
-.nav li {
+.nav li,
+.nav li a {
   display: inline-block;
+}
+header .nav li {
+  display: block;
 }
 .paragraphs-item--large-quote-intro-text-style-intro-text {
   text-align: center;
