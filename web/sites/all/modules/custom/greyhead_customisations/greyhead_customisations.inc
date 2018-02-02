@@ -970,3 +970,257 @@ function greyhead_customisations_d_redirector($d = NULL) {
   // will now issue a redirect if appropriate (e.g. if it's not a
   // programmatically-submitted form, etc).
 }
+
+/**
+ * Custom submit handler for the node edit form.
+ *
+ * @param array $form
+ * @param arary $form_state
+ */
+function greyhead_customisations_node_form_submit($form, &$form_state) {
+  $monkeys = TRUE;
+}
+
+
+/**
+ * Return a list of menu items that are valid possible parents for the given menu item.
+ *
+ * @param $menus
+ *   An array of menu names and titles, such as from menu_get_menus().
+ * @param $item
+ *   The menu item or the node type for which to generate a list of parents.
+ *   If $item['mlid'] == 0 then the complete tree is returned.
+ * @param $type
+ *   The node type for which to generate a list of parents.
+ *   If $item itself is a node type then $type is ignored.
+ * @return
+ *   An array of menu link titles keyed on the a string containing the menu name
+ *   and mlid. The list excludes the given item and its children.
+ *
+ * @todo This has to be turned into a #process form element callback. The
+ *   'menu_override_parent_selector' variable is entirely superfluous.
+ */
+function greyhead_customisations_menu_parent_options($menus, $item, $type = '') {
+  // The menu_links table can be practically any size and we need a way to
+  // allow contrib modules to provide more scalable pattern choosers.
+  // hook_form_alter is too late in itself because all the possible parents are
+  // retrieved here, unless menu_override_parent_selector is set to TRUE.
+  if (variable_get('menu_override_parent_selector', FALSE)) {
+    return array();
+  }
+
+  $available_menus = array();
+  if (!is_array($item)) {
+    // If $item is not an array then it is a node type.
+    // Use it as $type and prepare a dummy menu item for _menu_get_options().
+    $type = $item;
+    $item = array('mlid' => 0);
+  }
+  if (empty($type)) {
+    // If no node type is set, use all menus given to this function.
+    $available_menus = $menus;
+  }
+  else {
+    // If a node type is set, use all available menus for this type.
+    $type_menus = variable_get('menu_options_' . $type, array('main-menu' => 'main-menu'));
+    foreach ($type_menus as $menu) {
+      $available_menus[$menu] = $menu;
+    }
+  }
+
+  return _greyhead_customisations_menu_get_options($menus, $available_menus, $item);
+}
+
+
+/**
+ * Helper function to get the items of the given menu.
+ */
+function _greyhead_customisations_menu_get_options($menus, $available_menus, $item) {
+  // If the item has children, there is an added limit to the depth of valid parents.
+  if (isset($item['parent_depth_limit'])) {
+    $limit = $item['parent_depth_limit'];
+  }
+  else {
+    $limit = _menu_parent_depth_limit($item);
+  }
+
+  $options = array();
+  foreach ($menus as $menu_name => $title) {
+    if (isset($available_menus[$menu_name])) {
+      $tree = greyhead_customisations_menu_tree_all_data($menu_name, NULL);
+      $options[$menu_name . ':0'] = '<' . $title . '>';
+      _menu_parents_recurse($tree, $menu_name, '--', $options, $item['mlid'], $limit);
+    }
+  }
+  return $options;
+}
+
+/**
+ * Gets the data structure representing a named menu tree.
+ *
+ * Since this can be the full tree including hidden items, the data returned
+ * may be used for generating an an admin interface or a select.
+ *
+ * @param $menu_name
+ *   The named menu links to return
+ * @param $link
+ *   A fully loaded menu link, or NULL. If a link is supplied, only the
+ *   path to root will be included in the returned tree - as if this link
+ *   represented the current page in a visible menu.
+ * @param $max_depth
+ *   Optional maximum depth of links to retrieve. Typically useful if only one
+ *   or two levels of a sub tree are needed in conjunction with a non-NULL
+ *   $link, in which case $max_depth should be greater than $link['depth'].
+ *
+ * @return
+ *   An tree of menu links in an array, in the order they should be rendered.
+ */
+function greyhead_customisations_menu_tree_all_data($menu_name, $link = NULL, $max_depth = NULL) {
+  $tree = &drupal_static(__FUNCTION__, array());
+
+  // Use $mlid as a flag for whether the data being loaded is for the whole tree.
+  $mlid = isset($link['mlid']) ? $link['mlid'] : 0;
+  // Generate a cache ID (cid) specific for this $menu_name, $link, $language, and depth.
+  $cid = 'links:' . $menu_name . ':all:' . $mlid . ':' . $GLOBALS['language']->language . ':' . (int) $max_depth . ':greyhead';
+
+  if (!isset($tree[$cid])) {
+    // If the static variable doesn't have the data, check {cache_menu}.
+    $cache = cache_get($cid, 'cache_menu');
+    if ($cache && isset($cache->data)) {
+      // If the cache entry exists, it contains the parameters for
+      // menu_build_tree().
+      $tree_parameters = $cache->data;
+    }
+    // If the tree data was not in the cache, build $tree_parameters.
+    if (!isset($tree_parameters)) {
+      $tree_parameters = array(
+        'min_depth' => 1,
+        'max_depth' => $max_depth,
+      );
+      if ($mlid) {
+        // The tree is for a single item, so we need to match the values in its
+        // p columns and 0 (the top level) with the plid values of other links.
+        $parents = array(0);
+        for ($i = 1; $i < MENU_MAX_DEPTH; $i++) {
+          if (!empty($link["p$i"])) {
+            $parents[] = $link["p$i"];
+          }
+        }
+        $tree_parameters['expanded'] = $parents;
+        $tree_parameters['active_trail'] = $parents;
+        $tree_parameters['active_trail'][] = $mlid;
+      }
+
+      // Cache the tree building parameters using the page-specific cid.
+      cache_set($cid, $tree_parameters, 'cache_menu');
+    }
+
+    // Build the tree using the parameters; the resulting tree will be cached
+    // by _menu_build_tree()).
+    $tree[$cid] = greyhead_customisations_menu_build_tree($menu_name, $tree_parameters);
+  }
+
+  return $tree[$cid];
+}
+
+/**
+ * Builds a menu tree, translates links, and checks access.
+ *
+ * @param $menu_name
+ *   The name of the menu.
+ * @param $parameters
+ *   (optional) An associative array of build parameters. Possible keys:
+ *   - expanded: An array of parent link ids to return only menu links that are
+ *     children of one of the plids in this list. If empty, the whole menu tree
+ *     is built, unless 'only_active_trail' is TRUE.
+ *   - active_trail: An array of mlids, representing the coordinates of the
+ *     currently active menu link.
+ *   - only_active_trail: Whether to only return links that are in the active
+ *     trail. This option is ignored, if 'expanded' is non-empty. Internally
+ *     used for breadcrumbs.
+ *   - min_depth: The minimum depth of menu links in the resulting tree.
+ *     Defaults to 1, which is the default to build a whole tree for a menu
+ *     (excluding menu container itself).
+ *   - max_depth: The maximum depth of menu links in the resulting tree.
+ *   - conditions: An associative array of custom database select query
+ *     condition key/value pairs; see _menu_build_tree() for the actual query.
+ *
+ * @return
+ *   A fully built menu tree.
+ */
+function greyhead_customisations_menu_build_tree($menu_name, array $parameters = array()) {
+  // Build the menu tree.
+  $data = _menu_build_tree($menu_name, $parameters);
+
+  // Check access for the current user to each item in the tree.
+  greyhead_customisations_menu_tree_check_access($data['tree'], $data['node_links']);
+  return $data['tree'];
+}
+
+/**
+ * Checks access and performs dynamic operations for each link in the tree.
+ *
+ * @param $tree
+ *   The menu tree you wish to operate on.
+ * @param $node_links
+ *   A collection of node link references generated from $tree by
+ *   menu_tree_collect_node_links().
+ */
+function greyhead_customisations_menu_tree_check_access(&$tree, $node_links = array()) {
+  if ($node_links && (user_access('access content') || user_access('bypass node access'))) {
+    $nids = array_keys($node_links);
+    $select = db_select('node', 'n');
+    $select->addField('n', 'nid');
+    $select->condition('n.status', 1);
+    $select->condition('n.nid', $nids, 'IN');
+    $select->addTag('node_access');
+    $nids = $select->execute()->fetchCol();
+    foreach ($nids as $nid) {
+      foreach ($node_links[$nid] as $mlid => $link) {
+        $node_links[$nid][$mlid]['access'] = TRUE;
+      }
+    }
+  }
+  _greyhead_customisations_menu_tree_check_access($tree);
+}
+
+/**
+ * Sorts the menu tree and recursively checks access for each item.
+ */
+function _greyhead_customisations_menu_tree_check_access(&$tree) {
+  $new_tree = array();
+  foreach ($tree as $key => $v) {
+    $item = &$tree[$key]['link'];
+    $was_inaccessible = FALSE;
+    if (!$item['access']) {
+      $was_inaccessible = $item['access'] = TRUE;
+    }
+    _menu_link_translate($item);
+
+    // Force the item title to be the menu link title.
+    $item['title'] = $item['link_title'];
+
+    // The following line is the sole reason we've had to steal loads of code
+    // from menu.module - we want to allow the inclusion of menu items even
+    // when the "access" flag isn't TRUE. This line was:
+    //if ($item['access'] || ($item['in_active_trail'] && strpos($item['href'], '%') !== FALSE)) {
+    if (TRUE) {
+      if ($tree[$key]['below']) {
+        _greyhead_customisations_menu_tree_check_access($tree[$key]['below']);
+      }
+      // The weights are made a uniform 5 digits by adding 50000 as an offset.
+      // After _menu_link_translate(), $item['title'] has the localized link title.
+      // Adding the mlid to the end of the index insures that it is unique.
+      $new_tree[(50000 + $item['weight']) . ' ' . $item['title'] . ' ' . $item['mlid']] = $tree[$key];
+
+      // Update the link title if the link isn't accessible - e.g. if
+      // the page which owns the menu link is not published.
+      if ($was_inaccessible) {
+        $new_tree[(50000 + $item['weight']) . ' ' . $item['title'] . ' ' . $item['mlid']]['link']['title'] .= ' (' . t('not published') . ')';
+      }
+    }
+  }
+  // Sort siblings in the tree based on the weights and localized titles.
+  ksort($new_tree);
+  $tree = $new_tree;
+}

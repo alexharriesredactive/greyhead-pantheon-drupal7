@@ -55,7 +55,7 @@ function paragraph_page_form_alter(&$form, &$form_state, $form_id) {
 
     // On node edit forms, allow the passing of a plid attribute in the URL
     // to pre-select a menu item.
-    if (array_key_exists('menu', $form) && isset($_GET['plid'])) {
+    if (!empty($form['menu']) && !empty($_GET['plid'])) {
       // Get the plid.
       $plid = intval($_GET['plid']);
 
