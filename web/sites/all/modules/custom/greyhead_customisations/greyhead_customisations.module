@@ -172,11 +172,28 @@ function greyhead_customisations_form_alter(&$form, $form_state, $form_id) {
       $form['path']['pathauto']['#disabled'] = TRUE;
     }
 
-    // On node edit forms, allow the passing of a plid attribute to pre-select
-    // a menu item.
-    if (array_key_exists('menu', $form) && isset($_GET['plid'])) {
+    // Update the menu link parent options with disabled menu links.
+    // This code is largely stolen from menu_form_node_form_alter().
+
+    // Generate a list of possible parents (not including this link or descendants).
+    // @todo This must be handled in a #process handler.
+    $link = $form['#node']->menu;
+    $type = $form['#node']->type;
+
+    // menu_parent_options() is goofy and can actually handle either a menu link
+    // or a node type both as second argument. Pick based on whether there is
+    // a link already (menu_node_prepare() sets mlid default to 0).
+    $normal_options = menu_parent_options(menu_get_menus(), $link['mlid'] ? $link : $type, $type);
+    $greyhead_options = greyhead_customisations_menu_parent_options(menu_get_menus(), $link['mlid'] ? $link : $type, $type);
+    $form['menu']['link']['parent']['#options'] = $greyhead_options;
+
+    // On node edit forms, because we are now allowing a node's menu link to be
+    // a child of a disabled menu link, we need to re-check that the correct
+    // parent has been selected. We also use this step to allow the passing of
+    // a plid attribute to pre-select a menu item.
+    if (!empty($link['plid']) || (array_key_exists('menu', $form) && isset($_GET['plid']))) {
       // Get the plid.
-      $plid = intval($_GET['plid']);
+      $plid = !empty($_GET['plid']) ? intval($_GET['plid']) : $link['plid'];
 
       // Work out the option name from the plid. Plids are unique, but the
       // options are prefixed with the menu name, so we need to check each
@@ -189,8 +206,8 @@ function greyhead_customisations_form_alter(&$form, $form_state, $form_id) {
           // Found the right parent - set it as default.
           $form['menu']['link']['parent']['#value'] = $option;
 
-          // Disable both the menu parent select.
-          $form['menu']['link']['parent']['#disabled'] = TRUE;
+          // Disable the menu parent select.
+//          $form['menu']['link']['parent']['#disabled'] = TRUE;
 
           // Set the menu link title to required.
           $form['menu']['link']['link_title']['#required'] = TRUE;
@@ -204,6 +221,9 @@ function greyhead_customisations_form_alter(&$form, $form_state, $form_id) {
         }
       }
     }
+
+    // Add a submit handler so we can debug node forms.
+    $form['#submit'][] = 'greyhead_customisations_node_form_submit';
   }
 
   // Always encrypt all submitted form data.
