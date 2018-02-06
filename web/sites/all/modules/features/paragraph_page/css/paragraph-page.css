@@ -802,6 +802,38 @@ body.node-type-paragraph-page .main-container.container > section.col-lg-12 {
   border-color: #cfcfcf;
 }
 
+/* Image with caption. */
+.paragraphs-item.paragraphs-item--image-with-optional-caption .image-and-caption {
+  /*border: #cfcfcf 1px solid;*/
+  /*border-left: 0;*/
+  /*border-right: 0;*/
+  margin: 1em 0;
+  /*padding: 1em 0;*/
+  /*background-color: #efefef;*/
+}
+
+.paragraphs-item.paragraphs-item--image-with-optional-caption .image-and-caption .image {
+  /*margin: 0 auto;*/
+}
+
+.paragraphs-item.paragraphs-item--image-with-optional-caption .image-and-caption .image .field-item {
+  /*text-align: center;*/
+}
+
+.paragraphs-item.paragraphs-item--image-with-optional-caption .image-and-caption .image img {
+  margin: 0 auto;
+  max-width: 100%;
+}
+
+.paragraphs-item.paragraphs-item--image-with-optional-caption .image-and-caption .caption {
+  margin: 1em 0;
+  border-bottom: #efefef 1px solid;
+  padding: 1em 10% 0 10%;
+  font-size: 0.95em;
+  color: #888;
+  text-align: center;
+}
+
 /*.paragraphs-item.paragraphs-item--images .field-item:nth-child(1),*/
 /*.paragraphs-item.paragraphs-item--images .field-item:nth-child(2) {*/
 /*display: block;*/
