@@ -67,7 +67,7 @@ function greyhead_customisations_init() {
       }
 
       // Ok, go.
-      drupal_goto($_GET['page'], NULL, 301);
+      drupal_goto($_GET['page'], [], 301);
     }
   }
 }
