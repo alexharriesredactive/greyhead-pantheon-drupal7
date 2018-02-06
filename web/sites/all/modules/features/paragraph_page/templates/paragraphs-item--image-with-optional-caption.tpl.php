@@ -5,7 +5,7 @@
  */
 ?>
 
-<div class="paragraphs-item paragraphs-item--image-with-optional-caption">
+<div class="paragraphs-item paragraphs-item--image-with-optional-caption container-fluid">
   <div class="row">
     <div class="image-and-caption">
       <div class="image">
