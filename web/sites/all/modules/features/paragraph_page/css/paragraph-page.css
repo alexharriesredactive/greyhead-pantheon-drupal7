@@ -826,9 +826,7 @@ body.node-type-paragraph-page .main-container.container > section.col-lg-12 {
 }
 
 .paragraphs-item.paragraphs-item--image-with-optional-caption .image-and-caption .caption {
-  margin: 1em 0;
-  border-bottom: #efefef 1px solid;
-  padding: 1em 10% 0 10%;
+  padding: 0.125em 10% 1em 10%;
   font-size: 0.95em;
   color: #888;
   text-align: center;
