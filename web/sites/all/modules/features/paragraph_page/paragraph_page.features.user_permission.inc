@@ -15,6 +15,7 @@ function paragraph_page_user_default_permissions() {
     'name' => 'administer paragraphs bundles',
     'roles' => array(
       'administrator' => 'administrator',
+      'administrator' => 'administrator',
     ),
     'module' => 'paragraphs',
   );
@@ -23,9 +24,9 @@ function paragraph_page_user_default_permissions() {
   $permissions['create paragraph_page content'] = array(
     'name' => 'create paragraph_page content',
     'roles' => array(
-      'administrator' => 'administrator',
       'client administrator' => 'client administrator',
       'editor' => 'editor',
+      'administrator' => 'administrator',
     ),
     'module' => 'node',
   );
@@ -34,8 +35,8 @@ function paragraph_page_user_default_permissions() {
   $permissions['delete any paragraph_page content'] = array(
     'name' => 'delete any paragraph_page content',
     'roles' => array(
-      'administrator' => 'administrator',
       'client administrator' => 'client administrator',
+      'administrator' => 'administrator',
     ),
     'module' => 'node',
   );
@@ -44,8 +45,8 @@ function paragraph_page_user_default_permissions() {
   $permissions['delete own paragraph_page content'] = array(
     'name' => 'delete own paragraph_page content',
     'roles' => array(
-      'administrator' => 'administrator',
       'editor' => 'editor',
+      'administrator' => 'administrator',
     ),
     'module' => 'node',
   );
@@ -54,8 +55,8 @@ function paragraph_page_user_default_permissions() {
   $permissions['edit any paragraph_page content'] = array(
     'name' => 'edit any paragraph_page content',
     'roles' => array(
-      'administrator' => 'administrator',
       'client administrator' => 'client administrator',
+      'administrator' => 'administrator',
     ),
     'module' => 'node',
   );
@@ -64,8 +65,8 @@ function paragraph_page_user_default_permissions() {
   $permissions['edit own paragraph_page content'] = array(
     'name' => 'edit own paragraph_page content',
     'roles' => array(
-      'administrator' => 'administrator',
       'editor' => 'editor',
+      'administrator' => 'administrator',
     ),
     'module' => 'node',
   );
@@ -74,9 +75,9 @@ function paragraph_page_user_default_permissions() {
   $permissions['search paragraph_page content'] = array(
     'name' => 'search paragraph_page content',
     'roles' => array(
-      'administrator' => 'administrator',
       'anonymous user' => 'anonymous user',
       'authenticated user' => 'authenticated user',
+      'administrator' => 'administrator',
     ),
     'module' => 'search_config',
   );
@@ -89,6 +90,7 @@ function paragraph_page_user_default_permissions() {
       'authenticated user' => 'authenticated user',
       'client administrator' => 'client administrator',
       'editor' => 'editor',
+      'administrator' => 'administrator',
     ),
     'module' => 'better_formats',
   );

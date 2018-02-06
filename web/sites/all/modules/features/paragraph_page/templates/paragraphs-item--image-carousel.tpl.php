@@ -25,7 +25,7 @@ $carousel_id = 'paragraphs-carousel-' . substr(md5(rand()), 0, 10);
 $field_parapg_carousel_slides_keys = element_children($content['field_parapg_carousel_slides']);
 ?>
 
-<div class="paragraphs-item paragraphs-item--image-carousel">
+<div class="paragraphs-item paragraphs-item--image-carousel container">
   <div class="row">
     <div class="<?php print $carousel_container_class ?>">
       <!-- Attention themers - this carousel ID is regenerated on each page
@@ -96,13 +96,11 @@ $field_parapg_carousel_slides_keys = element_children($content['field_parapg_car
               <?php print $link_closer ?>
 
               <?php if ($slide_title || $slide_subtitle): ?>
-                <div class="container">
-                  <div class="carousel-caption">
-                    <?php if ($slide_title): ?>
-                      <h2><?php print $link_opener . $slide_title . $link_closer ?></h2><?php endif ?>
-                    <?php if ($slide_subtitle): ?>
-                      <p><?php print $link_opener . $slide_subtitle . $link_closer ?></p><?php endif ?>
-                  </div>
+                <div class="carousel-caption">
+                  <?php if ($slide_title): ?>
+                    <h2><?php print $link_opener . $slide_title . $link_closer ?></h2><?php endif ?>
+                  <?php if ($slide_subtitle): ?>
+                    <p><?php print $link_opener . $slide_subtitle . $link_closer ?></p><?php endif ?>
                 </div>
               <?php endif ?>
             </div>

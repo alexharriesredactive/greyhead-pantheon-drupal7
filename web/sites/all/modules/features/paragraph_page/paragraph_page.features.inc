@@ -303,22 +303,6 @@ function paragraph_page_image_default_styles() {
     ),
   );
 
-  // Exported image style: up-to-600-high.
-  $styles['up-to-600-high'] = array(
-    'label' => 'Paragraph - less than 600 high',
-    'effects' => array(
-      1 => array(
-        'name' => 'image_scale',
-        'data' => array(
-          'width' => '',
-          'height' => 600,
-          'upscale' => 0,
-        ),
-        'weight' => 1,
-      ),
-    ),
-  );
-
   return $styles;
 }
 
@@ -398,11 +382,6 @@ function paragraph_page_paragraphs_info() {
     'image_carousel' => array(
       'name' => 'Carousel of images with links and left/right controls',
       'bundle' => 'image_carousel',
-      'locked' => '1',
-    ),
-    'image_with_optional_caption' => array(
-      'name' => 'Image with optional caption',
-      'bundle' => 'image_with_optional_caption',
       'locked' => '1',
     ),
     'images' => array(
