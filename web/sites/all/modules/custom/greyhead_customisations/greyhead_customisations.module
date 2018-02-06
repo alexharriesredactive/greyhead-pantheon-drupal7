@@ -49,6 +49,27 @@ function greyhead_customisations_init() {
   ) {
     drupal_add_js(drupal_get_path('module', 'greyhead_customisations') . '/js/greyhead_customisations_workbench_access_tweaks.js', 'file');
   }
+
+  // We seem to have a problem with URLs like
+  // 404.html?page=/are-aftermarket-hid-lights-legal-in-the-uk&from=https://www.google.co.uk/
+  // ... appearing in Google Alanytics. So, we look for URLs which have a
+  // ?page=x component, and redirect to them.
+  if ($_GET['q'] == '404.html') {
+    if (!empty($_GET['page'])) {
+      // Trim the leading slash off $_GET['page'], if present.
+      if (substr($_GET['page'], 0, 1) == '/') {
+        $_GET['page'] = substr($_GET['page'], 1);
+      }
+
+      // If $_GET['page'] is now empty, we're redirecting to the front page.
+      if (empty($_GET['page'])) {
+        $_GET['page'] = '<front>';
+      }
+
+      // Ok, go.
+      drupal_goto($_GET['page'], [], 301);
+    }
+  }
 }
 
 /**
