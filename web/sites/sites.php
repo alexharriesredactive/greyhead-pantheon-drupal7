@@ -194,6 +194,7 @@ if (!function_exists('greyhead_configuration_get_site_urls_and_environment_types
             foreach ($settings_site_urls_info_contents_parsed['SETTINGS_SITE_URLS'] as $environment_type => $http_host) {
               if (!empty($http_host)) {
                 $sites[$http_host] = $multisite_directory;
+                $environment_types[$http_host] = $environment_type;
               }
             }
           }
