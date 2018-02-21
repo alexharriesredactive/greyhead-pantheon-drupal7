@@ -63,12 +63,12 @@
 /**
  * Constants.
  */
-defined('DEFAULT_DOMAIN') || define('DEFAULT_DOMAIN', 'greyhead.co.uk');
+defined('DEFAULT_DOMAIN') || define('DEFAULT_DOMAIN', 'jaffs.co.uk');
 
 /**
  * Set where the configuration directory lives relative to Drupal's index.php.
  */
-defined('GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION') || define('GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION', '../configuration/');
+defined('GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION') || define('GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION', './configuration/');
 
 /**
  * We need to know Drupal's root, but if we're in Drush, the DRUPAL_ROOT isn't
@@ -194,30 +194,6 @@ if (!function_exists('greyhead_configuration_get_site_urls_and_environment_types
             foreach ($settings_site_urls_info_contents_parsed['SETTINGS_SITE_URLS'] as $environment_type => $http_host) {
               if (!empty($http_host)) {
                 $sites[$http_host] = $multisite_directory;
-
-                // If the environment type is empty, set it to UNKNOWN.
-                if (!empty($environment_type)) {
-                  $environment_type = strtoupper($environment_type);
-                }
-
-                // If $environment_type is 'STAGE', change it to 'RC'.
-                if ($environment_type == 'STAGE') {
-                  $environment_type = 'RC';
-                }
-
-                if (!empty($environment_type)) {
-                  $environment_types[$http_host] = $environment_type;
-                }
-
-                // If the host begins www., also create a non-www version.
-                if (substr($http_host, 0, strlen('www.')) == 'www.') {
-                  $http_host_no_rubberdubdub = substr($http_host, strlen('www.'));
-                  $sites[$http_host_no_rubberdubdub] = $multisite_directory;
-
-                  if (!empty($environment_type)) {
-                    $environment_types[$http_host_no_rubberdubdub] = $environment_type;
-                  }
-                }
               }
             }
           }
@@ -343,7 +319,7 @@ if (file_exists($sites_local_php_path) && is_readable($sites_local_php_path)) {
 }
 
 // Include our redirect functions.
-$redirects_php_path = GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION . '/includes/redirects.php';
+$redirects_php_path = GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION . 'includes/redirects.php';
 if (file_exists($redirects_php_path) && is_readable($redirects_php_path)) {
   require $redirects_php_path;
 }
