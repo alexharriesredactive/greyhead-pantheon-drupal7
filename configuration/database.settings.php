@@ -18,6 +18,8 @@ if (file_exists(GREYHEAD_DRUPAL_ROOT . '/../local_database.php')
 
 // This file will be skipped if the $databases array has already been defined
 // or if we're in a Pantheon site.
+global $databases;
+
 if (!defined('PANTHEON_ENVIRONMENT')
   && !(strtok($_SERVER['REQUEST_URI'], '?') == '/install.php')
   && empty($databases)) {

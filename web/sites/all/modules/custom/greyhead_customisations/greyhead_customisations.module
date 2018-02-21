@@ -17,6 +17,19 @@ include_once 'greyhead_customisations.inc';
 include_once 'greyhead_customisations.user_role_utilities.inc';
 
 /**
+ * Implements hook_boot().
+ */
+function greyhead_customisations_boot() {
+  // In hostile environments such as Zoocha, we can't get in at the settings.php
+  // level, so we run our config here instead.
+  if (!defined('GREYHEAD_CONFIGURATION_LOADED') && defined('GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION')) {
+    // Include the common settings.php file. Paths relative to index.php!
+    global $conf;
+    require_once GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION . 'common.settings.php';
+  }
+}
+
+/**
  * Implements hook_init().
  */
 function greyhead_customisations_init() {

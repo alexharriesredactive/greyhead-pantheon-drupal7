@@ -188,3 +188,8 @@ if (file_exists($file_path)
   && is_readable($file_path)) {
   include $file_path;
 }
+
+/**
+ * Leave a marker to indicate we've included these settings.
+ */
+defined('GREYHEAD_CONFIGURATION_LOADED') || define('GREYHEAD_CONFIGURATION_LOADED', TRUE);
