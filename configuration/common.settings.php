@@ -89,7 +89,7 @@ $conf['greyhead_configuration']['overridden_variables'] = [];
 /**
  * Include the correct settings file. Paths relative to index.php!
  */
-define('SETTINGS_FILE_PATH', GREYHEAD_DRUPAL_ROOT . '/../configuration/');
+define('SETTINGS_FILE_PATH', GREYHEAD_DRUPAL_ROOT . '/' . GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION);
 
 /**
  * Include the HTTPS detection bits and bobs.
@@ -140,6 +140,11 @@ include SETTINGS_FILE_PATH . 'includes/conf-maillog-defaults.php';
 include SETTINGS_FILE_PATH . 'includes/conf-default-file-locations.php';
 
 /**
+ * Include CAPTCHA overrides if configured.
+ */
+include SETTINGS_FILE_PATH . 'includes/conf-captcha-disable.php';
+
+/**
  * Detect the current environment.
  */
 include SETTINGS_FILE_PATH . 'includes/environment-type-detection.php';
@@ -163,6 +168,8 @@ if (!defined('DATABASE_SETTINGS_INCLUDED')
  * called local_settings.php (i.e. one level above Drupal's index.php).
  *
  * @see local_settings.template.php for more info.
+ *
+ * @todo: This should be configurable in the same way that GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION works.
  */
 $file_path = GREYHEAD_DRUPAL_ROOT . '/../local_settings.php';
 if (!defined('LOCAL_SETTINGS_INCLUDED')

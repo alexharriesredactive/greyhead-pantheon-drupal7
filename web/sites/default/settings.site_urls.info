@@ -1,0 +1,32 @@
+; This file simply defines the URLs of this website for Drupal's multisite discovery system.
+;
+; There should be at least one line like this:
+;
+; SETTINGS_SITE_URLS[] = example.co.uk
+;
+; You can add multiple domains like this:
+;
+; SETTINGS_SITE_URLS[] = example.co.uk
+; SETTINGS_SITE_URLS[] = example.com
+;
+; If you have multiple environments, you can specify which is which by setting
+; the SETTINGS_SITE_URLS array key to the environment type.
+; @todo: Implement code in sites.php which allows this to be used.
+;
+; SETTINGS_SITE_URLS[prod] = www.example.com
+; SETTINGS_SITE_URLS[ra] = ra.example.com
+; SETTINGS_SITE_URLS[stage] = stage.example.com
+; SETTINGS_SITE_URLS[dev] = dev.example.com
+; SETTINGS_SITE_URLS[local] = example.local
+;
+; @see common.settings.php for more info.
+;
+SETTINGS_SITE_URLS[prod] = www.example.com
+SETTINGS_SITE_URLS[ra] = ra.example.com
+SETTINGS_SITE_URLS[stage] = stage.example.com
+SETTINGS_SITE_URLS[dev] = dev.example.com
+SETTINGS_SITE_URLS[local] = example.pantheon.d7.clarion.local
+; Pantheon temporary URLs.
+SETTINGS_SITE_URLS[prod-pantheon] = example.pantheonsite.io
+SETTINGS_SITE_URLS[stage-pantheon] = test-example.pantheonsite.io
+SETTINGS_SITE_URLS[dev-pantheon] = dev-example.pantheonsite.io

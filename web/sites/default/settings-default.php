@@ -7,20 +7,20 @@
 
 // Explicitly state the site's identifier. This is also used as the name of the
 // S3 bucket.
-define('SITE_MACHINE_NAME', 'greyhead-default');
+define('SITE_MACHINE_NAME', 'clarion-default');
 
 // Work out the directory name of this multisite:
 define('MULTISITE_IDENTIFIER', substr(dirname(__FILE__), strrpos(dirname(__FILE__), '/') + 1));
 
 // Include the common settings.php file. Paths relative to index.php!
-require_once GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION . 'common.settings.php';
+require_once '../configuration/common.settings.php';
 
 /**
  * S3FS module config.
  */
 
 // Set the bucket name.
-$conf['s3fs_bucket'] = SITE_MACHINE_NAME; //'greyhead-default';
+$conf['s3fs_bucket'] = SITE_MACHINE_NAME; //'clarion-default';
 
 // If we know the env and aren't in production or drush use the test bucket.
 // @todo: How can we tell if we're in Drush on live?

@@ -61,12 +61,12 @@ $conf['404_fast_html'] = DRUPAL_FAST_404_HTML . ' <!-- Drupal 404 - request time
 
 # Load the fast_404.inc file. This is needed if you wish to do extension
 # checking in settings.php.
-if (is_readable('../docroot/sites/all/modules/contrib/fast_404/fast_404.inc')) {
-  include_once('../docroot/sites/all/modules/contrib/fast_404/fast_404.inc');
+if (is_readable(GREYHEAD_DRUPAL_ROOT . 'sites/all/modules/contrib/fast_404/fast_404.inc')) {
+  include_once(GREYHEAD_DRUPAL_ROOT . 'sites/all/modules/contrib/fast_404/fast_404.inc');
   define('FAST_404_INCLUDED', TRUE);
 }
-elseif (is_readable('../docroot/sites/all/modules/fast_404/fast_404.inc')) {
-  include_once('../docroot/sites/all/modules/fast_404/fast_404.inc');
+elseif (is_readable(GREYHEAD_DRUPAL_ROOT . 'sites/all/modules/fast_404/fast_404.inc')) {
+  include_once(GREYHEAD_DRUPAL_ROOT . 'sites/all/modules/fast_404/fast_404.inc');
   define('FAST_404_INCLUDED', TRUE);
 }
 

@@ -1,30 +1,12 @@
 <?php
 
 /**
- * Constants.
- */
-defined('DEFAULT_DOMAIN') || define('DEFAULT_DOMAIN', 'greyhead.co.uk');
-
-/**
- * We need to know Drupal's root, but if we're in Drush, the DRUPAL_ROOT isn't
- * defined because Drush shuffles the order in which Drupal is bootstrapped.
- *
- * To get around this, we first check if DRUPAL_ROOT is defined and, if not, we
- * check if a Drush command is available.
- *
- * Failing all that, we die with an error message because something's gone
- * askew.
- */
-if (function_exists('drush_get_context')) {
-  defined('GREYHEAD_DRUPAL_ROOT') || define('GREYHEAD_DRUPAL_ROOT', drush_get_context('DRUSH_SELECTED_DRUPAL_ROOT'));
-}
-else {
-  defined('GREYHEAD_DRUPAL_ROOT') || define('GREYHEAD_DRUPAL_ROOT', DRUPAL_ROOT);
-}
-
-/**
  * @file
- * Configuration file for Drupal's multi-site directory aliasing feature.
+ * Modified configuration file for Drupal multi-site directory aliasing feature.
+ *
+ * ***
+ * This file contains extra special sauce to help configure this site.
+ * ***
  *
  * This file allows you to define a set of aliases that map hostnames, ports,
  *   and pathnames to configuration directories in the sites directory. These
@@ -77,6 +59,33 @@ else {
  * @see conf_path()
  * @see http://drupal.org/documentation/install/multi-site
  */
+
+/**
+ * Constants.
+ */
+defined('DEFAULT_DOMAIN') || define('DEFAULT_DOMAIN', 'greyhead.co.uk');
+
+/**
+ * Set where the configuration directory lives relative to Drupal's index.php.
+ */
+defined('GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION') || define('GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION', '../configuration/');
+
+/**
+ * We need to know Drupal's root, but if we're in Drush, the DRUPAL_ROOT isn't
+ * defined because Drush shuffles the order in which Drupal is bootstrapped.
+ *
+ * To get around this, we first check if DRUPAL_ROOT is defined and, if not, we
+ * check if a Drush command is available.
+ *
+ * Failing all that, we die with an error message because something's gone
+ * askew.
+ */
+if (function_exists('drush_get_context')) {
+  defined('GREYHEAD_DRUPAL_ROOT') || define('GREYHEAD_DRUPAL_ROOT', drush_get_context('DRUSH_SELECTED_DRUPAL_ROOT'));
+}
+else {
+  defined('GREYHEAD_DRUPAL_ROOT') || define('GREYHEAD_DRUPAL_ROOT', DRUPAL_ROOT);
+}
 
 if (!function_exists('greyhead_configuration_get_site_urls_and_environment_types')) {
   /**
@@ -334,7 +343,7 @@ if (file_exists($sites_local_php_path) && is_readable($sites_local_php_path)) {
 }
 
 // Include our redirect functions.
-$redirects_php_path = '../configuration/includes/redirects.php';
+$redirects_php_path = GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION . '/includes/redirects.php';
 if (file_exists($redirects_php_path) && is_readable($redirects_php_path)) {
   require $redirects_php_path;
 }
