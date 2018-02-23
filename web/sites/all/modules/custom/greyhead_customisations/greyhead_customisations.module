@@ -257,7 +257,7 @@ function greyhead_customisations_form_alter(&$form, $form_state, $form_id) {
     }
 
     // Add a submit handler so we can debug node forms.
-    $form['#submit'][] = 'greyhead_customisations_node_form_submit';
+    //$form['#submit'][] = 'greyhead_customisations_node_form_submit';
   }
 
   // Always encrypt all submitted form data.

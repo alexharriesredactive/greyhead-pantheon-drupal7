@@ -926,7 +926,8 @@ function greyhead_customisations_user_edit_form_redirect_to_user_view() {
  *
  * This should be defined in the site's settings.php, e.g.:
  *
- * defined('SITE_MACHINE_NAME') || define('SITE_MACHINE_NAME', 'my-website-of-awfulness');
+ * defined('SITE_MACHINE_NAME') || define('SITE_MACHINE_NAME',
+ * 'my-website-of-awfulness');
  */
 function greyhead_customisations_site_directory() {
   return defined('SITE_MACHINE_NAME') ? SITE_MACHINE_NAME : NULL;
@@ -978,12 +979,12 @@ function greyhead_customisations_d_redirector($d = NULL) {
  * @param arary $form_state
  */
 function greyhead_customisations_node_form_submit($form, &$form_state) {
-  $monkeys = TRUE;
+  //$monkeys = TRUE;
 }
 
-
 /**
- * Return a list of menu items that are valid possible parents for the given menu item.
+ * Return a list of menu items that are valid possible parents for the given
+ * menu item.
  *
  * @param $menus
  *   An array of menu names and titles, such as from menu_get_menus().
@@ -993,8 +994,10 @@ function greyhead_customisations_node_form_submit($form, &$form_state) {
  * @param $type
  *   The node type for which to generate a list of parents.
  *   If $item itself is a node type then $type is ignored.
+ *
  * @return
- *   An array of menu link titles keyed on the a string containing the menu name
+ *   An array of menu link titles keyed on the a string containing the menu
+ *   name
  *   and mlid. The list excludes the given item and its children.
  *
  * @todo This has to be turned into a #process form element callback. The
@@ -1006,15 +1009,15 @@ function greyhead_customisations_menu_parent_options($menus, $item, $type = '') 
   // hook_form_alter is too late in itself because all the possible parents are
   // retrieved here, unless menu_override_parent_selector is set to TRUE.
   if (variable_get('menu_override_parent_selector', FALSE)) {
-    return array();
+    return [];
   }
 
-  $available_menus = array();
+  $available_menus = [];
   if (!is_array($item)) {
     // If $item is not an array then it is a node type.
     // Use it as $type and prepare a dummy menu item for _menu_get_options().
     $type = $item;
-    $item = array('mlid' => 0);
+    $item = ['mlid' => 0];
   }
   if (empty($type)) {
     // If no node type is set, use all menus given to this function.
@@ -1022,7 +1025,7 @@ function greyhead_customisations_menu_parent_options($menus, $item, $type = '') 
   }
   else {
     // If a node type is set, use all available menus for this type.
-    $type_menus = variable_get('menu_options_' . $type, array('main-menu' => 'main-menu'));
+    $type_menus = variable_get('menu_options_' . $type, ['main-menu' => 'main-menu']);
     foreach ($type_menus as $menu) {
       $available_menus[$menu] = $menu;
     }
@@ -1030,7 +1033,6 @@ function greyhead_customisations_menu_parent_options($menus, $item, $type = '') 
 
   return _greyhead_customisations_menu_get_options($menus, $available_menus, $item);
 }
-
 
 /**
  * Helper function to get the items of the given menu.
@@ -1044,7 +1046,7 @@ function _greyhead_customisations_menu_get_options($menus, $available_menus, $it
     $limit = _menu_parent_depth_limit($item);
   }
 
-  $options = array();
+  $options = [];
   foreach ($menus as $menu_name => $title) {
     if (isset($available_menus[$menu_name])) {
       $tree = greyhead_customisations_menu_tree_all_data($menu_name, NULL);
@@ -1076,7 +1078,7 @@ function _greyhead_customisations_menu_get_options($menus, $available_menus, $it
  *   An tree of menu links in an array, in the order they should be rendered.
  */
 function greyhead_customisations_menu_tree_all_data($menu_name, $link = NULL, $max_depth = NULL) {
-  $tree = &drupal_static(__FUNCTION__, array());
+  $tree = &drupal_static(__FUNCTION__, []);
 
   // Use $mlid as a flag for whether the data being loaded is for the whole tree.
   $mlid = isset($link['mlid']) ? $link['mlid'] : 0;
@@ -1093,14 +1095,14 @@ function greyhead_customisations_menu_tree_all_data($menu_name, $link = NULL, $m
     }
     // If the tree data was not in the cache, build $tree_parameters.
     if (!isset($tree_parameters)) {
-      $tree_parameters = array(
+      $tree_parameters = [
         'min_depth' => 1,
         'max_depth' => $max_depth,
-      );
+      ];
       if ($mlid) {
         // The tree is for a single item, so we need to match the values in its
         // p columns and 0 (the top level) with the plid values of other links.
-        $parents = array(0);
+        $parents = [0];
         for ($i = 1; $i < MENU_MAX_DEPTH; $i++) {
           if (!empty($link["p$i"])) {
             $parents[] = $link["p$i"];
@@ -1148,7 +1150,7 @@ function greyhead_customisations_menu_tree_all_data($menu_name, $link = NULL, $m
  * @return
  *   A fully built menu tree.
  */
-function greyhead_customisations_menu_build_tree($menu_name, array $parameters = array()) {
+function greyhead_customisations_menu_build_tree($menu_name, array $parameters = []) {
   // Build the menu tree.
   $data = _menu_build_tree($menu_name, $parameters);
 
@@ -1166,7 +1168,7 @@ function greyhead_customisations_menu_build_tree($menu_name, array $parameters =
  *   A collection of node link references generated from $tree by
  *   menu_tree_collect_node_links().
  */
-function greyhead_customisations_menu_tree_check_access(&$tree, $node_links = array()) {
+function greyhead_customisations_menu_tree_check_access(&$tree, $node_links = []) {
   if ($node_links && (user_access('access content') || user_access('bypass node access'))) {
     $nids = array_keys($node_links);
     $select = db_select('node', 'n');
@@ -1188,11 +1190,11 @@ function greyhead_customisations_menu_tree_check_access(&$tree, $node_links = ar
  * Sorts the menu tree and recursively checks access for each item.
  */
 function _greyhead_customisations_menu_tree_check_access(&$tree) {
-  $new_tree = array();
+  $new_tree = [];
   foreach ($tree as $key => $v) {
     $item = &$tree[$key]['link'];
     $was_inaccessible = FALSE;
-    if (!$item['access']) {
+    if (empty($item['access']) || !$item['access']) {
       $was_inaccessible = $item['access'] = TRUE;
     }
     _menu_link_translate($item);
