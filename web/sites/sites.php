@@ -68,7 +68,7 @@ defined('DEFAULT_DOMAIN') || define('DEFAULT_DOMAIN', 'jaffs.co.uk');
 /**
  * Set where the configuration directory lives relative to Drupal's index.php.
  */
-defined('GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION') || define('GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION', './configuration/');
+defined('GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION') || define('GREYHEAD_CONFIGURATION_DIRECTORY_LOCATION', '../configuration/');
 
 /**
  * We need to know Drupal's root, but if we're in Drush, the DRUPAL_ROOT isn't
