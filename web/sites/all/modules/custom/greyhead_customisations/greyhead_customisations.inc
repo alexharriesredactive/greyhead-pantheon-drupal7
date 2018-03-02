@@ -128,8 +128,20 @@ function greyhead_customisations_get_child_pages($mlid = NULL, $menu_name = 'mai
       // We will attempt to use the cache if block or page caching is enabled.
       $cacheable = (variable_get('block_cache') || variable_get('page_cache'));
 
+      // Get the current user's roles, ordered ascending, and md5 it to create a hash.
+      global $user;
+
+      if (!empty($user->roles)) {
+        $roles = array_keys($user->roles);
+        sort($roles);
+        $roles = md5(implode('+', $roles));
+      }
+      else {
+        $roles = md5('0');
+      }
+
       // Generate the cache ID for this data.
-      $cid = __FUNCTION__ . ':menu-' . $menu_name . ':mlid-' . $child_link->mlid;
+      $cid = __FUNCTION__ . ':menu-' . $menu_name . ':mlid-' . $child_link->mlid . ':user-roles-' . $roles;
 
       // If caching of blocks or pages is enabled, check the cache for this
       // data. If not §available, generate it now.
@@ -158,8 +170,15 @@ function greyhead_customisations_get_child_pages($mlid = NULL, $menu_name = 'mai
           // Load the node.
           $node = node_load($nid);
 
-          // Add the node in to the result.
-          $result['node'] = $node;
+          // Did the node load successfully?
+          if (empty($node)) {
+            continue;
+          }
+
+          // Does the current user have access?
+          if (!node_access('view', $node)) {
+            continue;
+          }
 
           // Has the node been marked to be hidden from landing pages?
           if (greyhead_customisations_node_hidden_from_landing_page($nid)) {
@@ -170,6 +189,9 @@ function greyhead_customisations_get_child_pages($mlid = NULL, $menu_name = 'mai
           if (!is_null($node_type) && ($node->type !== $node_type)) {
             continue;
           }
+
+          // Add the node in to the result.
+          $result['node'] = $node;
 
           // Get the title.
           $possible_title_fields = [
