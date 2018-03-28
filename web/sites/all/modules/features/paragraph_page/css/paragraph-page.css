@@ -851,3 +851,14 @@ body.node-type-paragraph-page .main-container.container > section.col-lg-12 {
 .field-name-field-folder {
   display: none;
 }
+
+/* Add a bit of top and bottom padding to links list items. */
+.paragraphs-item--links-list {
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+}
+
+.paragraphs-item--links-list .links-list-item {
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+}

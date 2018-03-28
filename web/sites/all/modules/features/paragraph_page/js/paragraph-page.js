@@ -76,7 +76,7 @@ var Drupal = Drupal || {};
 
               // Get the bottom position of the belowElement relative to the
               // _viewport_, rather than the page.
-              if ($belowElement.length()) {
+              if ($belowElement.length) {
                 console.log($belowElement, '$belowElement');
                 var belowElementBottom = $belowElement[0].getBoundingClientRect().bottom;
 
