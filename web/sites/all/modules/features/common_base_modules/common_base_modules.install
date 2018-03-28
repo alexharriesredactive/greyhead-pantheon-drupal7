@@ -1,0 +1,177 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Base Modules module.
+ */
+
+//hook_requirements
+
+//hook_schema
+
+/**
+ * Implements hook_install.
+ */
+function common_base_modules_install() {
+  // Reset the schema version to run all update hooks.
+  drupal_set_installed_schema_version('common_base_modules', 7000);
+
+  // Protect nodes with Autosave.
+  _common_base_modules_autosave_set_all_node_types();
+}
+
+/**
+ * Protect nodes with Autosave.
+ */
+function common_base_modules_update_7101() {
+  _common_base_modules_autosave_set_all_node_types();
+}
+
+/**
+ * Enable token_tweaks module.
+ */
+function common_base_modules_update_7102() {
+  module_enable(['token_tweaks']);
+}
+
+//hook_uninstall
+
+//hook_enable
+
+//hook_disable
+
+/**
+ * Sets all node types to be protected by the Autosave module.
+ */
+function _common_base_modules_autosave_set_all_node_types() {
+  foreach (node_type_get_types() as $node_type => $node_info) {
+    variable_set('autosave_' . $node_type, TRUE);
+    drupal_set_message(t('Set the "@type" content type to be protected by the Autosave module.', array('@type' => $node_info->name)), 'success');
+  }
+}
+
+/**
+ * Empty update function. Empty. Just like my wallet after putting new brakes
+ * on my car. Stupid money pit-on-wheels... :(
+ */
+function common_base_modules_update_7103() {
+}
+
+/**
+ * Enable the Media and Media Browser Plus modules.
+ */
+function common_base_modules_update_7104() {
+  module_disable(array('text_formats'));
+  module_enable(array('media_browser_plus'));
+}
+
+/**
+ * Disable adminimal_admin_menu to prevent JS errors in Media module.
+ */
+function common_base_modules_update_7105() {
+  module_disable(array('adminimal_admin_menu'));
+}
+
+/**
+ * Use jQuery 1.8 in the admin section for compatibility with the Media module.
+ */
+function common_base_modules_update_7106() {
+  variable_set('jquery_update_jquery_admin_version', '1.8');
+}
+
+/**
+ * Enable entitycache.
+ */
+function common_base_modules_update_7107() {
+  module_enable(array('entitycache'));
+}
+
+/**
+ * Enable maillog.
+ */
+function common_base_modules_update_7108() {
+  module_enable(array('maillog'));
+}
+
+/**
+ * Enable greyhead_add_child_here.
+ */
+function common_base_modules_update_7109() {
+  module_enable(array('greyhead_add_child_here'));
+}
+
+/**
+ * Empty update function of doom.
+ */
+function common_base_modules_update_7110() {
+}
+
+/**
+ * If this is the 6portalway site, enable the theme and helper module.
+ */
+function common_base_modules_update_7111() {
+  if (defined('MULTISITE_IDENTIFIER') && (MULTISITE_IDENTIFIER == '6portalway')) {
+    module_enable(array('sixportalway_customisations'));
+    theme_enable(array('sixportalway_bootstrap_subtheme'));
+    variable_set('theme_default', 'sixportalway_bootstrap_subtheme');
+    drupal_set_message(st('Enabled sixportalway_customisations and sixportalway_bootstrap_subtheme'));
+  }
+}
+
+/**
+ * Empty update function.
+ */
+function common_base_modules_update_7112() {
+}
+
+/**
+ */
+function common_base_modules_update_7113() {
+}
+
+/**
+ */
+function common_base_modules_update_7114() {
+}
+
+/**
+ */
+function common_base_modules_update_7115() {
+}
+
+/**
+ */
+function common_base_modules_update_7116() {
+}
+
+/**
+ * Disable AddAnother - confusingly similar to Greyhead Add Child Page Here.
+ */
+function common_base_modules_update_7117() {
+  module_disable(array('addanother'));
+}
+
+/**
+ * Use at least jQuery 1.8 in the admin section for compatibility with the Media
+ * module.
+ */
+function common_base_modules_update_7118() {
+  $current_jquery_main_version = variable_get('jquery_update_jquery_version', 'default');
+  // If $current_jquery_admin_version is NULL and $current_jquery_main_version
+  // is < 1.8, or '1.5', or '1.7', we need to change to 1.8.
+  $current_jquery_admin_version = variable_get('jquery_update_jquery_admin_version', NULL);
+  if ((is_null($current_jquery_admin_version) && in_array($current_jquery_main_version, array('default', '1.5', '1.7')))
+    || in_array($current_jquery_admin_version, array(NULL, 'default', '1.5', '1.7'))) {
+    variable_set('jquery_update_jquery_admin_version', '1.8');
+  }
+}
+
+/**
+ * Disable WYSIWYG if CKEditor is enabled.
+ */
+function common_base_modules_update_7119() {
+  if (module_exists('ckeditor') && module_exists('wysiwyg')) {
+    drupal_set_message(st('WYSIWYG and CKEditor modules are both enabled; disabling WYSIWYG to prevent calamities.'), 'warning');
+    module_disable(array('wysiwyg'));
+  }
+}

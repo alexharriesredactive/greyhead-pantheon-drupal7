@@ -1,0 +1,94 @@
+From 411b880306765590c0dbf29c5d655b3cdef127f2 Mon Sep 17 00:00:00 2001
+From: fugazi <info@febko.de>
+Date: Sat, 14 Mar 2015 15:50:32 +0100
+Subject: [PATCH] error upgrade commerce
+
+---
+ commerce_pricing_attributes.module | 46 +++++++++++++++++++++++++++++-----------------
+ 1 file changed, 29 insertions(+), 17 deletions(-)
+
+diff --git a/commerce_pricing_attributes.module b/commerce_pricing_attributes.module
+index d7b979e..4a39c0e 100644
+--- a/commerce_pricing_attributes.module
++++ b/commerce_pricing_attributes.module
+@@ -929,6 +929,9 @@ function commerce_pricing_attributes_add_to_cart_submit($form, $form_state){
+   elseif (isset($form_state['products'])) {
+     $current_product = reset($form_state['products']);
+   }
++  elseif(isset($form_state['default_product_id'])){
++    $current_product = commerce_product_load($form_state['default_product_id']);
++  }
+   else {
+     return;
+   }
+@@ -988,26 +991,28 @@ function commerce_pricing_attributes_add_to_cart_submit($form, $form_state){
+     else {
+       if ($type == 'commerce_pricing_attributes') {
+         $lang_code = field_language('commerce_product', $current_product, $field_name);
+-        foreach ($field[$lang_code] as $delta => $set_id) {
++        if (isset($field[$lang_code])) {
++          foreach ($field[$lang_code] as $delta => $set_id) {
+
+-          if (count($options) > 0 && isset($options[$set_id['set_id']][$current_product->product_id][$field_name][$delta])) {
+-            $option = $options[$set_id['set_id']][$current_product->product_id][$field_name][$delta];
+-          }
+-          else{
+-            $option = $form_state['commerce_option'][$field_name][$delta]['option'];
+-          }
++           if (count($options) > 0 && isset($options[$set_id['set_id']][$current_product->product_id][$field_name][$delta])) {
++             $option = $options[$set_id['set_id']][$current_product->product_id][$field_name][$delta];
++           }
++           else{
++             $option = $form_state['commerce_option'][$field_name][$delta]['option'];
++           }
+
+-          // Notify field widgets. // entity_form_submit_build_entity
+-          field_attach_submit('commerce_option', $option, $form[$field_name][$delta], $form_state);
++           // Notify field widgets. // entity_form_submit_build_entity
++           field_attach_submit('commerce_option', $option, $form[$field_name][$delta], $form_state);
+
+-          $option->line_item_id = $form_state['line_item']->line_item_id;
+-          $option->field_name = $field_name;
+-          $option->field_delta = $delta;
+-          $option->product_id = $current_product->product_id;
++           $option->line_item_id = $form_state['line_item']->line_item_id;
++           $option->field_name = $field_name;
++           $option->field_delta = $delta;
++           $option->product_id = $current_product->product_id;
+
+-          // Save the product.
+-          commerce_option_save($option);
++           // Save the product.
++           commerce_option_save($option);
+
++          }
+         }
+       }
+     }
+@@ -1040,8 +1045,10 @@ function commerce_pricing_attributes_field_attach_form($entity_type, $entity, &$
+         if(isset($entity->set_details[$field_name]['options']) and !empty($entity->set_details[$field_name]['options'])){
+           $options = array();
+
+-          // If - None - value is deafult.
+-          if($entity->set_details[$field_name]['default'] === '_none' || $entity->set_details[$field_name]['default'] == ''){
++          // If - None - value is deafult or field is not required
++          $none_is_default = ($entity->set_details[$field_name]['default'] === '_none' || $entity->set_details[$field_name]['default'] == '');
++          $is_required = (bool)$entity->set_details[$field_name]['required'];
++          if($none_is_default || !$is_required){
+             $options['_none'] = t('- None -');
+           }
+
+@@ -1156,6 +1163,11 @@ function commerce_pricing_attributes_field_attach_form($entity_type, $entity, &$
+  */
+ function commerce_pricing_attributes_add_to_cart_form_attributes_refresh($form, $form_state){
+   $commands = array();
++
++  if(empty($form_state['default_product']) && $default_product_id = $form_state['default_product_id']){
++    $form_state['default_product'] = commerce_product_load($default_product_id);
++  }
++
+
+   if(!empty($form_state['default_product']) and !empty($form_state['context'])){
+     $product = $form_state['default_product'];
+--
+libgit2 0.21.2

@@ -1,0 +1,7 @@
+name = Adestra List
+description = Manage and integrate Adestra lists.
+package = Adestra
+core = 7.x
+dependencies[] = adestra
+
+configure = admin/config/services/adestra/list

@@ -1,0 +1,28 @@
+From cbb6d48d33ff829be427fb1a9b5e3a3f1bb0c360 Mon Sep 17 00:00:00 2001
+From: Alex Harries <alex@greyhead.co.uk>
+Date: Tue, 23 Feb 2016 18:33:58 +0000
+Subject: [PATCH] Geocoder: Don't require $geometry to === NULL before
+ regenerating a position; $geometry can be FALSE or NULL and both can signify
+ an empty result, an empty cache, etc.
+
+Signed-off-by: Alex Harries <alex@greyhead.co.uk>
+---
+ geocoder.widget.inc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/geocoder.widget.inc b/geocoder.widget.inc
+index 16c21af..cad612b 100644
+--- a/geocoder.widget.inc
++++ b/geocoder.widget.inc
+@@ -330,7 +330,7 @@ function geocoder_widget_get_field_value($entity_type, $field_instance, $entity
+         }
+
+         // No cache record, so fetch live.
+-        if ($geometry === NULL) {
++        if (!$geometry) {
+           // Geocode any value from our source field.
+           try {
+             $geometry = call_user_func($handler['field_callback'], $field_info, $item, $handler_settings);
+--
+2.5.4 (Apple Git-61)
+

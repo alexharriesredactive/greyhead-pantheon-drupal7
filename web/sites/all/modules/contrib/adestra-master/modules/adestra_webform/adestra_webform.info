@@ -1,0 +1,8 @@
+name = Adestra Webform
+description = Manage and integrate Adestra-Powered Webforms.
+package = Adestra
+core = 7.x
+dependencies[] = adestra
+dependencies[] = webform
+
+configure = admin/config/services/adestra/webform

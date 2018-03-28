@@ -1,0 +1,36 @@
+<?php
+
+/**
+ * @file
+ * Provides PCA db schema, installation process and requirements.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function postcodeanywhere_schema() {
+  $schema['cache_postcodeanywhere'] = drupal_get_schema_unprocessed('system', 'cache');
+  return $schema;
+}
+
+/**
+ * Renaming cache table.
+ */
+function postcodeanywhere_update_7001(&$sandbox) {
+  db_drop_table("postcodeanywhere_cache");
+  drupal_install_schema('postcodeanywhere');
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function postcodeanywhere_requirements($phase) {
+  $requirements = array();
+
+  if ($phase == 'runtime') {
+
+    // @todo
+  }
+
+  return $requirements;
+}

@@ -1,0 +1,63 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for greyhead_encrypted_field.
+ */
+
+/**
+ * Implements hook_field_schema().
+ */
+function greyhead_encrypted_field_field_schema($field) {
+  // Load the module file so we have the constants available.
+  if (drupal_load('module', 'greyhead_encrypted_field')) {
+    $columns = array(
+      GEF_FIELD_LABEL_FAPI_KEY => array(
+        'description' => 'Name of encrypted item: a descriptive name of the encrypted field data provided by the field editor, for example: Test account password',
+        'type' => 'text',
+        'size' => 'medium',
+        'not null' => FALSE,
+      ),
+      GEF_FIELD_VALUE_FAPI_KEY => array(
+        'description' => 'Encrypted value: the data which is to be encrypted.',
+        'type' => 'text',
+        'size' => 'medium',
+        'not null' => FALSE,
+      ),
+      // The UID field is deprecated and will use the parent entity's owner for
+      // node and user objects. For all other entities, we ignore this permission,
+      // but other modules can implement ownership checks of course.
+//    GEF_UID_KEY => array(
+//      'description' => 'The user ID who created the field.',
+//      'type' => 'int',
+//      'not null' => TRUE,
+//    ),
+      GEF_ACLS_KEY => array(
+        'description' => 'Access control entries: a list of users, roles, and organic groups whose membership grants access to view or edit.',
+        'type' => 'text',
+        'size' => 'medium',
+        'not null' => FALSE,
+      ),
+    );
+
+    $indexes = array(
+//    GEF_UID_KEY => array(GEF_UID_KEY => GEF_UID_KEY),
+    );
+
+    $foreign_keys = array(
+//    GEF_UID_KEY => array(
+//      'table' => 'users',
+//      'columns' => array(GEF_UID_KEY => 'uid'),
+//    ),
+    );
+
+    return array(
+      'columns' => $columns,
+      'indexes' => $indexes,
+      'foreign keys' => $foreign_keys,
+    );
+  }
+  else {
+    die('Unable to load the Greyhead Encrypted Field module file.');
+  }
+}

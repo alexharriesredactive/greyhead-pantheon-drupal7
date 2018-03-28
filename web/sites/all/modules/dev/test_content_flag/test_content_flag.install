@@ -1,0 +1,43 @@
+<?php
+  function test_content_flag_install(){
+    global $base_path;
+    drupal_set_message('Please go to the Test Content Flag <a href="'.url($base_path . '/admin/config/test_content/settings').'">Configuration Page</a>');
+  }
+  
+  /**
+   *  Implementation of hook_uninstall - to remove all the fields and unset all the variables
+   */
+   function test_content_flag_uninstall(){
+     if(variable_get('test_content_flag_uninstall', 1)){
+       //get all the content types
+       $content_types = variable_get('test_content_flag_content_types', array());
+       foreach($content_types as $type=>$value){
+         if($value !== 0){
+           _test_content_flag_uninstall_remove_field($type, 'test_content_flag');
+         }
+       }
+     }
+     
+     //delete the variables
+     variable_del('test_content_flag_uninstall');
+     variable_del('test_content_flag_content_types');
+     variable_del('test_content_flag_default_value');
+   }
+   
+   /**
+     *  Needs to be here to be used in the uninstall
+     *  Remove the test_content field from a content type (actually removes instances)
+     *  @param content_type - the string name of the content type
+     */
+    function _test_content_flag_uninstall_remove_field($content_type, $field_name){
+      $instance['field_name'] = strtolower(str_ireplace(' ', '_', $field_name));
+      $existing = field_read_instance('node', $instance['field_name'], $content_type);
+      if($existing && isset($existing['settings']['test_flag']) && $existing['settings']['test_flag']){  
+        $instance['bundle'] = $content_type;
+        $instance['entity_type'] = 'node';
+        
+        field_delete_instance($instance);
+        drupal_set_message( t('Test Flag Field deleted for @type', array('@type' => $content_type)) );
+      }
+    }
+   

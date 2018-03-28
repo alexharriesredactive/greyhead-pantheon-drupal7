@@ -1,0 +1,31 @@
+<?php
+/**
+ * @file
+ * Install and uninstall functions.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function countdown_event_install() {
+  // Make translations available on un-/install.
+  $t = get_t();
+  // Set custom status message on installation.
+  drupal_set_message($t("'countdown_event' has been successfully installed. You may now <a href='?q=admin/structure/block/manage/countdown_event/countdown_event/configure'>configure the countdown event block</a>."));
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function countdown_event_uninstall() {
+  // Delete module variables.
+  variable_del("countdown_event_date");
+  variable_del("countdown_event_label_msg");
+  variable_del("countdown_event_label_color");
+  variable_del("countdown_event_background_color");
+  variable_del("countdown_event_text_color");
+  // Make translations available on un-/install.
+  $t = get_t();
+  // Set custom message after uninstall.
+  drupal_set_message($t("'countdown_event' has been successfully uninstalled."));
+}

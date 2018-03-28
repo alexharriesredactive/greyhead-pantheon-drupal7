@@ -1,0 +1,172 @@
+<?php
+/**
+ * @file
+ * Hooks implementations for the Field Group Titles module.
+ */
+
+/**
+ * Implements hook_help().
+ */
+function field_group_titles_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#field_group_titles':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The Field Group Titles module was created to extend the Field Group module to allow for unique tab, div, and fieldset titles per node.') . '</p>';
+      $output .= '<h3>' . t('Instructions') . '</h3>';
+      $output .= '<p>' . t('Field groups shoud be setup normally, you can see the documentation here.
+        <a href="http://drupal.org/node/1017838" target="_blank">http://drupal.org/node/1017838</a>
+
+        To override the title of a tab, fieldset, div, or accordion, go to content
+        types -> manage fields and add a new field with the type "Field Group Title".
+        Once the field is added, drag the field into the correct group, so it shows as
+        a child of the item it should correspond to. At this point when a user edits
+        the node they should now see the title field show up in the correct field
+        group.
+
+        Next, we need to add the title to the display, so go to content types ->
+        manage display. Here you can either drag and drop the field into the correct
+        position as a child of the group you wish to override, or you can scroll to
+        the bottom of the form, and there is an option named "Fieldgroups" where you
+        can clone the form view, meaning it would duplicate the structure seen in the
+        manage fields tab.
+
+        Now that the field you\'ve created is set in the display, make sure to set the
+        label to HIDDEN. Hit save, and you should be able to edit the node, and rename
+        the tab to anything you want.') . '</p>';
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_field_info().
+ *
+ * Provides the description of the field.
+ */
+function field_group_titles_field_info() {
+  return array(
+    'field_group_titles' => array(
+      'label' => t('Field Group Title'),
+      'description' => t('Optionally override of the parent title'),
+      'default_widget' => 'field_group_title',
+      'default_formatter' => 'field_group_title_override',
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_is_empty().
+ *
+ * Lets us know the field is empty.
+ */
+function field_group_titles_field_is_empty($item, $field) {
+  return empty($item['title_override']);
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ *
+ * Formatter for the title override field.
+ */
+function field_group_titles_field_formatter_info() {
+  return array(
+    // This formatter just displays the hex value in the color indicated.
+    'field_group_title_override' => array(
+      'label' => t('Overrides parent field group title'),
+      'field types' => array('field_group_titles'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ *
+ * This adds the formatter view
+ *
+ * @see field_example_field_formatter_info()
+ */
+function field_group_titles_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+
+  switch ($display['type']) {
+    case 'field_group_title_override':
+      foreach ($items as $delta => $item) {
+        $element[$delta] = array(
+          '#value' => $item['title_override'],
+        );
+      }
+      break;
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_field_widget_info().
+ *
+ * This is a simple widget, basically equates to a text field
+ */
+function field_group_titles_field_widget_info() {
+  return array(
+    'field_group_title' => array(
+      'label' => t('Field Group Title Override'),
+      'field types' => array('field_group_titles'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_widget_form().
+ *
+ * This is where the widget is defined, a very simple text field
+ * with a maxlength of 100
+ */
+function field_group_titles_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $value = isset($items[$delta]['title_override']) ? $items[$delta]['title_override'] : '';
+
+  $widget = $element;
+  $widget['#delta'] = $delta;
+
+  switch ($instance['widget']['type']) {
+
+    case 'field_group_title':
+      $widget += array(
+        '#type' => 'textfield',
+        '#default_value' => $value,
+        '#size' => 60,
+        '#maxlength' => 100,
+      );
+      break;
+  }
+
+  $element['title_override'] = $widget;
+  return $element;
+}
+
+/**
+ * Implements hook_field_group_format_settings().
+ *
+ * See the documentation for field groups here
+ * http://drupal.org/node/1017962  This function loops
+ * through the children of groups to find title fields
+ * and alters the label.
+ */
+function field_group_titles_field_group_pre_render(&$element, $group, &$form) {
+  // Check to make the format type is a field group item.
+  switch ($group->format_type) {
+    case 'htab':
+    case 'tab':
+    case 'accordion-item':
+    case 'div':
+    case 'fieldset':
+      // Loop through children of the group and look for any field group title
+      // fields.
+      foreach ($element as $field_attribs) {
+        if (array_key_exists('#field_type', $field_attribs) && $field_attribs['#field_type'] == 'field_group_titles') {
+          // If there is a title field overwrite the group label.
+          $group->label = $field_attribs['#items'][0]['title_override'];
+        }
+      }
+      break;
+  }
+}

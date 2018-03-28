@@ -1,0 +1,133 @@
+<?php
+
+/**
+ * @file
+ * Drupal Module: Quantcast
+ *
+ * Provides integration with Quantcast.com media measurement and web analytics service.
+ *
+ * @Author: Irakli Nadareishvili. <a href="http://phase2technology.com">Phase2 Technology</a>
+ *          Drupal 7 implementation, refactoring and new features by Maciej Zgadzaj (http://zgadzaj.com/)
+ */
+
+/**
+ * Implements hook_help().
+ */
+function quantcast_help($path, $arg) {
+  switch ($path) {
+    case 'admin/config/system/quantcast':
+      return t('<a href="@qc_url">Quantcast</a> is a free (registration required) media measurement and web analytics service that allows users to view audience statistics for millions of websites.', array('@qc_url' => 'http://www.quantcast.com/'));
+  }
+}
+
+/**
+ * Implements hook_permission().
+ */
+function quantcast_permission() {
+  return array(
+    'administer quantcast' => array(
+      'title' => t('Administer Quantcast'),
+      'description' => t('Perform maintenance tasks for Quantcast.'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function quantcast_menu() {
+  $items['admin/config/system/quantcast'] = array(
+    'title'             => 'Quantcast',
+    'description'       => 'Configure settings for the quantcast module.',
+    'page callback'     => 'drupal_get_form',
+    'page arguments'    => array('quantcast_admin_settings_form'),
+    'access arguments'  => array('administer quantcast'),
+    'type'              => MENU_NORMAL_ITEM,
+    'file'              => 'quantcast.admin.inc',
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function quantcast_theme() {
+  $path = drupal_get_path('module', 'quantcast');
+  return array(
+    'quantcast_tag_full' => array(
+      'template'  => 'quantcast-tag-full',
+      'path'      => "$path/theme",
+      'variables' => array('vars' => NULL),
+    ),
+    'quantcast_tag_head' => array(
+      'template'  => 'quantcast-tag-head',
+      'path'      => "$path/theme",
+      'variables' => array('vars' => NULL),
+    ),
+    'quantcast_tag_body' => array(
+      'template'  => 'quantcast-tag-body',
+      'path'      => "$path/theme",
+      'variables' => array('vars' => NULL),
+    ),
+  );
+}
+
+/**
+ * Based on visibility setting this function returns TRUE if scripts code should
+ * be added for the current role and otherwise FALSE.
+ */
+function _quantcast_visibility_roles($account) {
+  $visibility = variable_get('quantcast_visibility_roles', 0);
+  $enabled = $visibility;
+  $roles = variable_get('quantcast_roles', array());
+
+  if (array_sum($roles) > 0) {
+    // One or more roles are selected.
+    foreach (array_keys($account->roles) as $rid) {
+      // Is the current user a member of one of these roles?
+      if (isset($roles[$rid]) && $rid == $roles[$rid]) {
+        $enabled = !$visibility;
+        break;
+      }
+    }
+  }
+  else {
+    // No role is selected, add script.
+    $enabled = TRUE;
+  }
+
+  return $enabled;
+}
+
+/**
+ * Implements hook_page_build().
+ */
+function quantcast_page_build(&$page) {
+  global $user;
+  if (!_quantcast_visibility_roles($user)) {
+    return;
+  }
+
+  if (path_is_admin(current_path())) {
+    return;
+  }
+
+  $qacct = check_plain(variable_get('quantcast_account', ''));
+  if (!empty($qacct)) {
+    $scope = variable_get('quantcast_js_scope', 'page_bottom');
+    $vars = array(
+      'pcode' => $qacct,
+    );
+    if ($scope == 'split') {
+      $head = array(
+        '#type'   => 'markup',
+        '#markup' => theme('quantcast_tag_head', array('vars' => $vars)),
+      );
+      drupal_add_html_head($head, 'quantcast');
+      $page['page_bottom']['quantcast']['#markup'] = theme('quantcast_tag_body', array('vars' => $vars));
+    }
+    else {
+      $page[$scope]['quantcast']['#markup'] = theme('quantcast_tag_full', array('vars' => $vars));
+    }
+  }
+}

@@ -1,0 +1,8 @@
+name = Paragraphs Navigation Paragraph
+description = Renders Paragraphs Navigation using new paragraph bundle. (One menu per field instance. Can be configured at individual entity level.)
+core = 7.x
+package = Paragraphs pack
+
+dependencies[] = blockreference
+dependencies[] = paragraphs_nav_block
+dependencies[] = paragraphs_pack

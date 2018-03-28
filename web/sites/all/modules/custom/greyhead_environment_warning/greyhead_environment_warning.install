@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the  module.
+ */
+
+/**
+ * Implements hook_install.
+ */
+function greyhead_environment_warning_install() {
+  module_load_install('greyhead_environment_warning');
+  greyhead_environment_warning_define_constants();
+
+  variable_set('greyhead_environment_warning_live_site', ENVIRONMENT_TYPE_LIVE);
+  variable_set('greyhead_environment_warning_message', GREYHEAD_ENVIRONMENT_WARNING_DEFAULT_MESSAGE);
+}
+
+/**
+ * Implements hook_uninstall.
+ */
+function greyhead_environment_warning_uninstall() {
+  variable_del('greyhead_environment_warning_live_site');
+  variable_del('greyhead_environment_warning_message');
+}

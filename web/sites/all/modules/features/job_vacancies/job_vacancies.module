@@ -1,0 +1,127 @@
+<?php
+/**
+ * @file
+ * Code for the Job Vacancies feature.
+ */
+
+include_once 'job_vacancies.features.inc';
+
+/**
+ * Custom code below this point.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function job_vacancies_menu() {
+  $items = array();
+
+
+
+  return $items;
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function job_vacancies_form_alter(&$form, &$form_state, $form_id) {
+  // On job vacancy node edit forms, pre-select the job application form ID
+  // in the field_job_vacancy_form entityreference field.
+  if ($form_id == 'job_vacancy_node_form') {
+    // Load the job_vacancies_apply_form entity info.
+    $job_vacancies_apply_form = entityform_get_types('job_vacancies_apply_form');
+
+    // Get the field language for the form select.
+    $field_job_vacancy_form_language = $form['field_job_vacancy_form']['#language'];
+
+    // Now get the option value for the form whose name matches
+    // $job_vacancies_apply_form->label.
+    $select_value = NULL;
+    foreach ($form['field_job_vacancy_form'][$field_job_vacancy_form_language]['#options'] as $key => $value) {
+      if ($value == $job_vacancies_apply_form->label) {
+        $select_value = $key;
+        break;
+      }
+    }
+
+    // If we have a select key, set the value and change the drop-down to be a
+    // server-side value.
+    if (!is_null($select_value)) {
+      $form['field_job_vacancy_form'][$field_job_vacancy_form_language]['#value'] = $select_value;
+      $form['field_job_vacancy_form'][$field_job_vacancy_form_language]['#type'] = 'value';
+    }
+  }
+
+  /**
+   * On the job_vacancies_apply_form entity form:
+   *
+   * 1. Deny access if the form isn't being shown embedded in a job vacancy
+   *    node.
+   *
+   * 2. Pre-populate the form's field_job_vacancy_to_email and
+   *    field_job_vacancy_to_name fields from the job vacancy node.
+   */
+  if ($form_id == 'job_vacancies_apply_form_entityform_edit_form') {
+    // Are we viewing a job vacancy page?
+    $access = FALSE;
+
+    // Pre-set $node so our IDE doesn't complain about potentially un-defined
+    // variaboos.
+    $node = NULL;
+
+    if ((arg(0) == 'node') && is_numeric(arg(1))) {
+      if (($node = node_load(arg(1))) && ($node->type == 'job_vacancy')) {
+        // It's a job vacancy :)
+        $access = TRUE;
+      }
+    }
+
+    // If we're okay to show the form, prepopulate the to name and email fields
+    // and set them to be server-side values.
+    if ($access) {
+      /**
+       * Fields to be prepopulated on the form:
+       *
+       * ['field_job_vacancy_to_email']['und'][0]['email']['#default_value']
+       * ['field_job_vacancy_to_name']['und'][0]['value']['#default_value']
+       *
+       * Language in:
+       *
+       * ['field_job_vacancy_to_email']['#language']
+       * ['field_job_vacancy_to_name']['#language']
+       */
+      $field_job_vacancy_to_email_items = field_get_items('node', $node, 'field_job_vacancy_to_email');
+      $field_job_vacancy_to_name_items = field_get_items('node', $node, 'field_job_vacancy_to_name');
+
+      // We don't use field_view_value here because it returns a rendered
+      // e-mail address as an HTML link. Gah. View modes, perhaps?
+      $field_job_vacancy_to_email = $field_job_vacancy_to_email_items[0]['email'];
+      $field_job_vacancy_to_name = $field_job_vacancy_to_name_items[0]['safe_value'];
+
+      // Get the language codes for the entity forms. It's almost certainly
+      // going to be "und" as we're not translating per-field but per-node.
+      $field_job_vacancy_to_email_language = $form['field_job_vacancy_to_email']['#language'];
+      $field_job_vacancy_to_name_language = $form['field_job_vacancy_to_name']['#language'];
+
+      // Now we can address the field.
+      $form['field_job_vacancy_to_email'][$field_job_vacancy_to_email_language][0]['email']['#value'] = $field_job_vacancy_to_email;
+      $form['field_job_vacancy_to_email'][$field_job_vacancy_to_email_language][0]['email']['#type'] = 'value';
+
+      $form['field_job_vacancy_to_name'][$field_job_vacancy_to_name_language][0]['value']['#value'] = $field_job_vacancy_to_name;
+      $form['field_job_vacancy_to_name'][$field_job_vacancy_to_name_language][0]['value']['#type'] = 'value';
+    }
+    // If we shouldn't be showing the form, set all the elephant children to no
+    // access.
+    else {
+      foreach (element_children($form) as $form_element) {
+        $form[$form_element]['#access'] = $access;
+      }
+
+      // Add an explanatory field in place of the form.
+      $form['explanation_text'] = array(
+        '#type' => 'markup',
+        '#markup' => '<div class="alert alert-warning">' . t('Please visit the job vacancy\'s page to apply for this job.') . '</div>',
+      );
+    }
+  }
+}

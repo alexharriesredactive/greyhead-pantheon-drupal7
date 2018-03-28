@@ -1,0 +1,27 @@
+From 716489aa4a3e1b79727accac68d220a8fcb3d566 Mon Sep 17 00:00:00 2001
+From: Alex Harries <alex@greyhead.co.uk>
+Date: Tue, 23 Feb 2016 18:35:47 +0000
+Subject: [PATCH] Geocoder: don't use addressfield_field_is_empty() as this can
+ fail if there isn't a value tp start with.
+
+Signed-off-by: Alex Harries <alex@greyhead.co.uk>
+---
+ plugins/geocoder_handler/google.inc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/plugins/geocoder_handler/google.inc b/plugins/geocoder_handler/google.inc
+index 5c4992f..59bfd7d 100644
+--- a/plugins/geocoder_handler/google.inc
++++ b/plugins/geocoder_handler/google.inc
+@@ -195,7 +195,7 @@ function geocoder_google_field($field, $field_item, $options = array()) {
+   if ($field['type'] == 'text' || $field['type'] == 'text_long' || $field['type'] == 'text_with_summary' || $field['type'] == 'computed') {
+     return geocoder_google($field_item['value'], $options);
+   }
+-  if ($field['type'] == 'addressfield' && module_exists('addressfield') && !addressfield_field_is_empty($field_item, $field)) {
++  if ($field['type'] == 'addressfield' && module_exists('addressfield')) {
+     $address = geocoder_widget_parse_addressfield($field_item);
+     return geocoder_google($address, $options);
+   }
+--
+2.5.4 (Apple Git-61)
+

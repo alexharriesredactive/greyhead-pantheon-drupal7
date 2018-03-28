@@ -1,0 +1,13 @@
+name = Drupal Update Notifications Settings
+description = "Sends update notification e-mails to a single consistent address for ease of administration."
+core = 7.x
+package = Greyhead Features
+version = 7.x-1.0-20150826
+dependencies[] = ctools
+dependencies[] = strongarm
+features[ctools][] = strongarm:strongarm:1
+features[features_api][] = api:2
+features[variable][] = update_check_disabled
+features[variable][] = update_check_frequency
+features[variable][] = update_notification_threshold
+features[variable][] = update_notify_emails

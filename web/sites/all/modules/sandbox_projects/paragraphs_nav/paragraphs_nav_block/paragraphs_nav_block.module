@@ -1,0 +1,160 @@
+<?php
+/**
+ * @file
+ * Paragraphs pack navigarion block.
+ */
+
+/**
+ * Implements hook_field_info_alter().
+ */
+function paragraphs_nav_block_field_info_alter(&$info) {
+  // Add place to store paragraphs navigation settings on field instance level
+  // and set default to "No menu"
+  if (isset($info[PN_PARAGRAPH_FIELD_TYPE])) {
+    $info[PN_PARAGRAPH_FIELD_TYPE]['settings'] += array(
+      'paragraphs_nav_block' => array(
+        PN_NAV_NONE => t('No menu'),
+      ),
+    );
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function paragraphs_nav_block_form_field_ui_field_edit_form_alter(&$form, &$form_state, $form_id) {
+  // Adds form element for settings of menus to all paragraphs fields.
+  if ($form['#field']['type'] == PN_PARAGRAPH_FIELD_TYPE) {
+    $form['instance']['settings']['paragraphs_nav_block'] = array(
+      '#type' => 'select',
+      '#title' => t('Provide menu based on paragraph items'),
+      '#description' => t('Select menu style and/or field where to load titles from. Select list format: Field title (Paragraph bundles)'),
+      '#default_value' => isset($form['#instance']['settings']['paragraphs_nav_block']) ? $form['#instance']['settings']['paragraphs_nav_block'] : PN_NAV_NONE,
+      '#required' => FALSE,
+      '#options' => paragraphs_nav_get_title_fields($form['#instance']['entity_type'], $form['#instance']['bundle'], $form['#instance']['field_name']),
+    );
+  }
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function paragraphs_nav_block_block_info() {
+
+  // Generate navigation blocks based on menus enabled on field instances.
+  $navs = paragraphs_nav_block_find_nav_blocks();
+  $blocks = array();
+
+  foreach ($navs as $nav_key => $nav) {
+    $blocks[$nav_key] = array(
+      'info' => t('Paragraph navigation for @path',
+        array(
+          '@path' => $nav['entity_type_label'] . ' - ' . $nav['bundle_name_label'] . ' - ' . $nav['field_name_label'],
+        )
+      ),
+      'cache' => DRUPAL_CACHE_PER_PAGE,
+    );
+  }
+
+  return $blocks;
+}
+
+/**
+ * Finds field instances of paragraph field with enabled menus.
+ */
+function paragraphs_nav_block_find_active_menus() {
+  $menus = array();
+
+  // Load info about all entities, bundles and field instances.
+  $field_instances = field_info_instances();
+
+  // Go trough all bundles.
+  foreach ($field_instances as $entity_type => $entity) {
+    foreach ($entity as $bundle_name => $bundle) {
+      foreach ($bundle as $field_name => $field) {
+        $field_info = field_info_field($field_name);
+        if ($field_info['type'] == PN_PARAGRAPH_FIELD_TYPE) {
+          $paranav = isset($field['settings']['paragraphs_nav_block']) ? $field['settings']['paragraphs_nav_block'] : PN_NAV_NONE;
+          // Get only enabled menus.
+          if ($paranav != PN_NAV_NONE) {
+            $menus[$entity_type][$bundle_name][$field_name] = $paranav;
+          }
+        }
+      }
+    }
+  }
+
+  return $menus;
+}
+
+/**
+ * Finds field instances of paragraph field with enabled menus.
+ */
+function paragraphs_nav_block_find_nav_blocks() {
+  // @ToDo Cache this!
+  $navs = array();
+  $menus = paragraphs_nav_block_find_active_menus();
+
+  foreach ($menus as $entity_type => $entity) {
+    foreach ($entity as $bundle_name => $bundle) {
+      foreach ($bundle as $field_name => $field) {
+        // Get frontend strings for UI
+        $entity_info = entity_get_info($entity_type);
+        $entity_type_label = $entity_info['label'];
+        $bundle_name_label = $entity_info['bundles'][$bundle_name]['label'];
+        $field_info = field_info_instance($entity_type, $field_name, $bundle_name);
+        $field_name_label = $field_info['label'];
+
+        // md5 our machine name - because of max length of column in block table. :(
+        $delta = md5(PN_BLOCK_PREFIX . '--' . $entity_type . '--' . $bundle_name . '--' . $field_name);
+        $navs[$delta] = array(
+          'machine_name' => PN_BLOCK_PREFIX . '--' . $entity_type . '--' . $bundle_name . '--' . $field_name,
+          'entity_type' => $entity_type,
+          'entity_type_label' => $entity_type_label,
+          'bundle_name' => $bundle_name,
+          'bundle_name_label' => $bundle_name_label,
+          'field_name' => $field_name,
+          'field_name_label' => $field_name_label,
+          'title_field' => $field,
+          'paras_class' => 'paragraphs-items-' . str_replace('_' , '-', $field_name),
+          'delta' => $delta,
+        );
+      }
+    }
+  }
+
+  return $navs;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function paragraphs_nav_block_block_view($delta = '') {
+  $block = array();
+  $navs = paragraphs_nav_block_find_nav_blocks();
+
+  // Check of delta is ours.
+  if (array_key_exists($delta, $navs)) {
+    $nav = $navs[$delta];
+    // Get active node.
+    $item = menu_get_item();
+
+    // Check if block with this delta is for this entity, bundle and field.
+    if ((isset($item['page_arguments'][0])) &&
+      ($nav['entity_type'] == $item['page_arguments'][0]->pn_entity_type) &&
+      ($nav['bundle_name'] == $item['page_arguments'][0]->type) &&
+      (isset($item['page_arguments'][0]->{$nav['field_name']}))
+    ) {
+      // Get active language.
+      $lang = field_language('node', $item['page_arguments'][0], $nav['field_name']);
+      //Check if there is at least one paragraph item.
+      if (isset($item['page_arguments'][0]->{$nav['field_name']}[$lang])) {
+        $block['subject'] = t('Navigation');
+        $block['content'] = array('#markup' => paragraphs_nav_contents($nav, $item['page_arguments'][0]));
+      }
+
+    }
+  }
+
+  return $block;
+}

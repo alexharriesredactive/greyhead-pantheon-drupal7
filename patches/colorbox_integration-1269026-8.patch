@@ -1,0 +1,105 @@
+From 779f45e0135e8def5805b25368d3a2a1197ce893 Mon Sep 17 00:00:00 2001
+From: Anybody <Anybody@291091.no-reply.drupal.org>
+Date: Tue, 3 Mar 2015 16:24:39 -0500
+Subject: [PATCH 1/2] add colorbox support cloud_zoom
+
+---
+ cloud_zoom.module | 20 +++++++++++++++++++-
+ js/cloud_zoom.js  | 13 +++++++++++++
+ 2 files changed, 32 insertions(+), 1 deletion(-)
+
+diff --git a/cloud_zoom.module b/cloud_zoom.module
+index c9f4f2f..ef0b455 100644
+--- a/cloud_zoom.module
++++ b/cloud_zoom.module
+@@ -316,6 +316,17 @@ function cloud_zoom_settings_info() {
+      ),
+    );
+ 
++   if (module_exists('colorbox')) {
++     $settings['colorbox'] = array(
++       'title' => t('Open details in Colorbox'),
++       'id' => FALSE,
++       'description' => t('Show the image in colorbox on click (requires the colorbox.module)'),
++       'default_value' => FALSE,
++       'form_type' => 'checkbox',
++       'fieldset' => 'zoom_style_fieldset',
++     );
++   }
++
+   return $settings;
+ }
+ 
+@@ -542,9 +553,16 @@ function theme_cloud_zoom_image($variables) {
+   $zoomed = $variables['zoom_style'] ? image_style_url($variables['zoom_style'], $item['uri']) : file_create_url($item['uri']);
+   $rel = cloud_zoom_get_rel_string($variables);
+ 
++  $attributes = array('class' => array('cloud-zoom'), 'rel' => $rel);
++  
++  // Use colorbox?
++  if (!empty($variables['colorbox']) && module_exists('colorbox')) {
++    $attributes['class'][] = 'colorbox';
++    $attributes['title'] = $item['title'];
++  }
+ 
+   // Return the preview image as a link to the larger image with a cloud-zoom CSS class
+-  return l($slide, $zoomed, array('html' => TRUE, 'attributes' => array('class' => 'cloud-zoom', 'rel' => $rel)));
++  return l($slide, $zoomed, array('html' => TRUE, 'attributes' => $attributes));
+ }
+ 
+ 
+diff --git a/js/cloud_zoom.js b/js/cloud_zoom.js
+index 7139f34..19ae247 100644
+--- a/js/cloud_zoom.js
++++ b/js/cloud_zoom.js
+@@ -5,6 +5,19 @@ Drupal.behaviors.cloudZoom = {
+     if (items.length) {
+       items.addClass('cloud-zoom-processed').CloudZoom();
+       items.parent().css('float', 'left');
++
++      // Colorbox integration
++      items.each(function() {
++        if ($(this).hasClass('colorbox')) {
++          // Add click event to wrapper (else mouse trap blocks it)
++          // But only if colorbox was initialized for this field.
++          var $item = $(this);
++          $item.parent().click(function() {
++            $item.colorbox(jQuery.extend({open: true}, settings.colorbox));
++            return false;
++          });
++        }
++      });
+     }
+   }
+ };
+-- 
+1.9.2
+
+
+From a7e41f4d33ea3408cea501796482a931f63bc473 Mon Sep 17 00:00:00 2001
+From: Anybody <Anybody@291091.no-reply.drupal.org>
+Date: Tue, 3 Mar 2015 16:30:34 -0500
+Subject: [PATCH 2/2] remove whitespace
+
+From: Vincent Massaro <vincent.massaro@yale.edu>
+
+---
+ cloud_zoom.module | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/cloud_zoom.module b/cloud_zoom.module
+index ef0b455..911b112 100644
+--- a/cloud_zoom.module
++++ b/cloud_zoom.module
+@@ -554,7 +554,7 @@ function theme_cloud_zoom_image($variables) {
+   $rel = cloud_zoom_get_rel_string($variables);
+ 
+   $attributes = array('class' => array('cloud-zoom'), 'rel' => $rel);
+-  
++
+   // Use colorbox?
+   if (!empty($variables['colorbox']) && module_exists('colorbox')) {
+     $attributes['class'][] = 'colorbox';
+-- 
+1.9.2
+

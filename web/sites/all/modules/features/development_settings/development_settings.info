@@ -1,0 +1,24 @@
+name = Development settings
+description = Development settings and modules for Drupal websites.
+core = 7.x
+package = Greyhead Features
+version = 7.x-1.0-20170717
+dependencies[] = ctools
+; Devel is disabled because we don't want it enabled on staging sites.
+;dependencies[] = devel
+dependencies[] = diff
+dependencies[] = features
+dependencies[] = strongarm
+features[ctools][] = strongarm:strongarm:1
+features[features_api][] = api:2
+;features[user_permission][] = access devel information
+;features[user_permission][] = execute php code
+;features[user_permission][] = switch users
+features[variable][] = block_cache
+features[variable][] = cache
+features[variable][] = cache_lifetime
+features[variable][] = page_cache_maximum_age
+features[variable][] = preprocess_css
+features[variable][] = preprocess_js
+features[variable][] = robotstxt
+project path = sites/all/modules/features

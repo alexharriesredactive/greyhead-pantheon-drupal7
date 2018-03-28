@@ -1,0 +1,89 @@
+From e6da749b8798d333a65454a22c39cae212a4be25 Mon Sep 17 00:00:00 2001
+From: Alex Harries <alex@greyhead.co.uk>
+Date: Fri, 13 Oct 2017 14:37:32 +0100
+Subject: [PATCH] Trello #246 [Core] Patch Draggable Views module to allow the
+ option to ignore arguments altogether.
+
+Signed-off-by: Alex Harries <alex@greyhead.co.uk>
+---
+ .../views/draggableviews_handler_sort.inc             | 19 ++++++++++++++++++-
+ .../views/draggableviews_join_handler.inc             | 16 +++++++++++++---
+ 2 files changed, 31 insertions(+), 4 deletions(-)
+
+diff --git views/draggableviews_handler_sort.inc views/draggableviews_handler_sort.inc
+index c81f065..e015a49 100644
+--- views/draggableviews_handler_sort.inc
++++ views/draggableviews_handler_sort.inc
+@@ -73,14 +73,31 @@ class draggableviews_handler_sort extends views_handler_sort {
+       '#title' => t('Arguments handling'),
+       '#type' => 'radios',
+       '#options' => array(
++        // This option will serialize all arguments in the URL and will expect
++        // them to all be present in the "args" field in the database, too.
+         'all' => t('Use all arguments'),
++
++        // This option will only select view items which have an empty
++        // serialized array in the "args" field, i.e. '[]'.
+         'none' => t('Do not use any arguments (use empty arguments)'),
++
++        // This option will not add a where clause for the "args" field to
++        // the Draggable Views LEFT JOIN at all.
++        'ignore' => t('Ignore arguments altogether'),
++
++        // This option allows custom PHP code to be defined to adjust/create
++        // an array of arguments to be passed serialized into the query.
+         'php' => t('Prepare arguments with PHP code'),
+       ),
+-      '#default_value' => $this->options['draggableviews_setting_arguments'],
++
++      // We will ignore arguments by default to try and make Draggable Views as
++      // easy as possible to get up and running.
++      '#default_value' => empty($this->options['draggableviews_setting_arguments']) ? 'ignore' : $this->options['draggableviews_setting_arguments'],
++
+       '#description' => t('When sorting order is saved all arguments passed are saved with order.
+           In display view we can choose how to use these arguments.')
+     );
++
+     $form['draggableviews_setting_arguments_php'] = array(
+       '#title' => t('PHP code to prepare arguments'),
+       '#type' => 'textarea',
+diff --git views/draggableviews_join_handler.inc views/draggableviews_join_handler.inc
+index dd7c0c4..461d316 100644
+--- views/draggableviews_join_handler.inc
++++ views/draggableviews_join_handler.inc
+@@ -64,13 +64,23 @@ class draggableviews_join_handler extends views_join {
+       if ($view->sort[$weight_key]->options['draggableviews_setting_arguments'] == 'none') {
+         $view_arguments = array();
+       }
++      // Don't query based on arguments at all.
++      if ($view->sort[$weight_key]->options['draggableviews_setting_arguments'] == 'ignore') {
++        $view_arguments = NULL;
++      }
+       // If PHP arguments processing is set.
+       if ($view->sort[$weight_key]->options['draggableviews_setting_arguments'] == 'php') {
+         $clone_view = clone $view;
+         $view_arguments = _draggableviews_eval_return($view->sort[$weight_key]->options['draggableviews_setting_arguments_php'], $view_arguments, $clone_view);
+       }
+-      $condition .= " AND $table[alias].args = :view_arguments";
+-      $arguments[':view_arguments'] = json_encode($view_arguments);
++
++      // We only want to add a condition based on the contents of the "args"
++      // field if we aren't ignoring args altogether.
++      // @see draggableviews_handler_sort()->options_form.
++      if (!is_null($view_arguments)) {
++        $condition .= " AND $table[alias].args = :view_arguments";
++        $arguments[':view_arguments'] = json_encode($view_arguments);
++      }
+     }
+
+     $select_query->addJoin($this->type, $right_table, $table['alias'], $condition, $arguments);
+@@ -83,4 +93,4 @@ class draggableviews_join_handler extends views_join {
+       }
+     }
+   }
+-}
+\ No newline at end of file
++}
+--
+2.8.4 (Apple Git-73)
+

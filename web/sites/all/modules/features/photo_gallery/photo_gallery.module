@@ -1,0 +1,65 @@
+<?php
+/**
+ * @file
+ * Code for the Photo gallery feature.
+ */
+
+include_once 'photo_gallery.features.inc';
+
+/**
+ * Custom code lives below this line. This code is here to override how the
+ * heading paragraph field group thingbob works.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function photo_gallery_theme() {
+  $theme = array();
+
+  $theme['node__photo_gallery'] = array(
+    'render element' => 'content',
+    'base hook' => 'node',
+    'template' => 'node--photo-gallery',
+    'path' => drupal_get_path('module', 'photo_gallery') . '/templates',
+  );
+
+  return $theme;
+}
+
+/**
+ * Implements hook_preprocess_node().
+ */
+function photo_gallery_preprocess_node(&$variables) {
+  // Are we on a paragraph page node?
+  if ($variables['node']->type == 'photo_gallery') {
+    // Add the module's CSS on pages where we're displaying a photo gallery.
+    // @TODO: check whether we need to prevent duplicate calls to add this CSS file to the page if more than one paragraph page node is rendered on a page call.
+    drupal_add_css(drupal_get_path('module', 'photo_gallery') . '/css/photo-gallery.css');
+  }
+}
+
+/**
+ * Implements hook_colorbox_settings_alter.
+ *
+ * @see https://www.drupal.org/node/1684936#comment-6518736
+ *
+ * @param $settings
+ * @param $style
+ */
+function photo_gallery_colorbox_settings_alter(&$settings, &$style) {
+  // Disable slideshow looping
+  $settings['loop'] = FALSE;
+}
+
+/**
+ * Implements hook_views_pre_render.
+ *
+ * @param $view
+ */
+function photo_gallery_views_pre_render(&$view) {
+  // If we're showing the photo gallery view, add our CSS.
+  if ($view->name == 'photo_galleries') {
+    drupal_add_css(drupal_get_path('module', 'photo_gallery') . '/css/photo-gallery.css');
+  }
+}

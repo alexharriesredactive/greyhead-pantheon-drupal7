@@ -1,0 +1,48 @@
+/**
+ * @file
+ * CSS styles for Greyhead Environment Warning.
+ */
+
+body:before {
+  display: block;
+  position: fixed;
+  right: 0;
+  bottom: 10%;
+  background-color: #000;
+  color: #fff;
+  content: 'environment: not production';
+  padding: 0.25em;
+  font-size: 2em;
+  z-index: 999999;
+}
+
+/*
+define('ENVIRONMENT_TYPE_LOCAL', 'local');
+define('ENVIRONMENT_TYPE_DRUSH', 'Drush');
+define('ENVIRONMENT_TYPE_DEV', 'development');
+define('ENVIRONMENT_TYPE_RC', 'release candidate');
+define('ENVIRONMENT_TYPE_RA', 'RA');
+define('ENVIRONMENT_TYPE_STAGE', 'staging');
+define('ENVIRONMENT_TYPE_LIVE', 'production');
+define('ENVIRONMENT_TYPE_UNKNOWN', 'unknown');
+define('SUBENVIRONMENT_TYPE_MAMP', 'MAMP');
+define('SUBENVIRONMENT_TYPE_ACQUIA', 'Acquia');
+define('SUBENVIRONMENT_TYPE_UNKNOWN', 'unknown');
+ */
+
+body.environment-local:before {
+  background-color: #f00;
+}
+
+body.environment-development:before {
+  background-color: #f60;
+}
+
+body.environment-release-candidate:before,
+body.environment-staging:before {
+  background-color: #0c0;
+}
+
+body.environment-unknown:before {
+  background-color: #ff3cc1;
+}

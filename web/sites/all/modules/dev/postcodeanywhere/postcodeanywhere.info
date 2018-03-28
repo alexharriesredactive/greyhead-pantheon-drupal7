@@ -1,0 +1,13 @@
+name = "Postcode Anywhere (PCA)"
+description = "Find a Postcode using PCA Predict (formerly Postcode Anywhere) service"
+core = 7.x
+configure = admin/config/content/postcodeanywhere
+recommends[] = advanced_help
+test_dependencies[] = postcodeanywhere_example
+
+; Information added by Drupal.org packaging script on 2016-02-24
+version = "7.x-1.0-alpha2+123-dev"
+core = "7.x"
+project = "postcodeanywhere"
+datestamp = "1456319345"
+

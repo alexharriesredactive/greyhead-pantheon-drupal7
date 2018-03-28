@@ -1,0 +1,38 @@
+From b19094a0abf1f511bc893546d7675e3db1636dd3 Mon Sep 17 00:00:00 2001
+From: Alex Harries <alex@greyhead.co.uk>
+Date: Tue, 23 Feb 2016 18:34:30 +0000
+Subject: [PATCH] Geocoder: geocoder_widget_get_field_concat - don't mangle
+ addressfield values.
+
+Signed-off-by: Alex Harries <alex@greyhead.co.uk>
+---
+ geocoder.widget.inc | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/geocoder.widget.inc b/geocoder.widget.inc
+index cad612b..a50cec6 100644
+--- a/geocoder.widget.inc
++++ b/geocoder.widget.inc
+@@ -386,8 +386,18 @@ function geocoder_widget_get_field_concat($items) {
+   // Check if we should concatenate
+   $concat = '';
+   foreach ($items as $item) {
++    // If we have an item which doesn't contain a value array, but has other
++    // fields - for example addressfields, which have thoroughfare, locality,
++    // administrative area etc - implode those fields into a single value
++    // string.
++    if (!isset($item['value']) && !empty($item)) {
++      $item['value'] = implode(',', $item);
++    }
++
++    // If we have a value key, cast it to string and append its content to
++    // $concat.
+     if (!empty($item['value'])) {
+-      $concat .= trim($item['value']) . ', ';
++      $concat .= trim((string)$item['value']) . ', ';
+     }
+   }
+   $concat = trim($concat, ', ');
+--
+2.5.4 (Apple Git-61)
+

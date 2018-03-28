@@ -1,0 +1,9 @@
+name = Paragraphs Navigation ScrollIt
+description = Integrates paragraphs_nav_block or/and paragraphs_nav_paragraph with ScrollIt library. (Active class, smooth scrolling, keyboard navigation.)
+package = Paragraphs pack
+core = 7.x
+
+files[] = paragraphs_nav_scrollit.admin.inc
+
+dependencies[] = paragraphs_nav
+dependencies[] = libraries

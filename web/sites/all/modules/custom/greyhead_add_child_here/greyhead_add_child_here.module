@@ -1,0 +1,160 @@
+<?php
+
+/**
+ * @file
+ * Presents users with an option to create another node of the same type after a
+ * node is added.
+ */
+
+/**
+ * Implement hook_help().
+ */
+function greyhead_add_child_here_help($path, $arg) {
+  if ($path == "admin/help#add-child-here") {
+    return '<p>' . t("Allows editors to create a new page with its menu automagically set to be a child of the current page.") . '</p>';
+  }
+}
+
+/**
+ * Implement hook_menu().
+ */
+function greyhead_add_child_here_menu() {
+  $items = array();
+
+  $items['node/%node/add-child-here'] = array(
+    'title' => 'Add child page here',
+    'page callback' => 'greyhead_add_child_here_choose_node_type',
+    'page arguments' => array(1),
+    'access callback' => 'greyhead_add_child_here_access',
+    'access arguments' => array(1),
+    'weight' => 5,
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  return $items;
+}
+
+/**
+ * Shows a list of content types which can be added as children of $node.
+ *
+ * This page will only list nodes which are permitted in the node type
+ * configuration to have menu links created in the same menu as $node's menu
+ * link.
+ */
+function greyhead_add_child_here_choose_node_type($node) {
+  // Get the node's mlid.
+  $mlid = greyhead_customisations_get_mlid_from_path('node/' . $node->nid, variable_get('menu_main_links_source', 'main-menu'), 1);
+
+  // Get a list of all node types.
+  $available_node_types = node_type_get_types();
+
+  // Remove node types which the user can't create.
+  foreach ($available_node_types as $node_type => $node_information) {
+    // Remove node types which aren't permitted to add links to the parent node's
+    // menu (on the node edit form).
+    if (!($access = _greyhead_add_child_here_access($node_type, $mlid))) {
+      unset($available_node_types[$node_type]);
+    }
+  }
+
+  // Get the list of node add links and build a list of HTML links.
+  $item = menu_get_item('node/add');
+  $list_of_node_add_links = system_admin_menu_block($item);
+
+  $links_list = array();
+
+  foreach ($list_of_node_add_links as $menu_link_identifier => $menu_link) {
+    // Is this node type in the list of allowed nodes? link_path will be
+    // something like node/add/node-type-name (using hyphens, not underscores).
+    $node_type = _greyhead_add_child_here_node_type_url(substr($menu_link['link_path'], strlen('node/add/')), TRUE);
+
+    if ($menu_link['access']
+      && array_key_exists($node_type, $available_node_types)) {
+      $links_list[] = array(
+        'menu_link' => $menu_link,
+        'query' => array('plid' => $mlid),
+      );
+    }
+  }
+
+  // Bypass the node/add listing if only one content type is available.
+  if (count($links_list) == 1) {
+    $link = array_shift($links_list);
+    drupal_goto($link['link_path'], $link['query']);
+  }
+  else {
+    $links_list_formatted = array();
+
+    foreach ($links_list as $link) {
+      $links_list_formatted[] = '<h3>' . l($link['menu_link']['link_title'], $link['menu_link']['link_path'], array('query' => $link['query'])) . '</h3>
+        <p>' . $link['menu_link']['description'] . '</p>';
+    }
+  }
+
+  // Return a themed list of nodes which can be added here.
+  $return = theme('item_list', array('items' => $links_list_formatted));
+
+  return $return;
+}
+
+/**
+ * Check if we should display the Add another verbage on a node.
+ */
+function greyhead_add_child_here_access($node) {
+  $mlid = greyhead_customisations_get_mlid_from_path('node/' . $node->nid, variable_get('menu_main_links_source', 'main-menu'), 1);
+  return _greyhead_add_child_here_access($node->type, $mlid);
+}
+
+/**
+ * Determine if a type of node can be added as a child menu item of a menu MLID.
+ *
+ * @param $node_type
+ * @param $mlid
+ *
+ * @return bool
+ */
+function _greyhead_add_child_here_access($node_type, $mlid) {
+  $access = TRUE;
+
+  // Can the current user create nodes of this type?
+  $access = $access && node_access('create', $node_type);
+
+  // Get $mlid's menu.
+  $menu_link = menu_link_load($mlid);
+
+  // Does this node type allow node creators to add links to the menu belonging
+  // to $mlid from the node edit form?
+  $menu_options = variable_get('menu_options_' . $node_type, array('main-menu'));
+
+  $access = $access && in_array($menu_link['menu_name'], $menu_options);
+
+  return $access;
+}
+
+/**
+ * Implement hook_form_alter().
+ */
+function greyhead_add_child_here_form_alter(&$form, $form_state, $form_id) {
+}
+
+/**
+ * Returns node type string acceptable for URL.
+ */
+function _greyhead_add_child_here_node_type_url($type, $reverse = FALSE) {
+  $from = $reverse ? '-' : '_';
+  $to = $reverse ? '_' : '-';
+
+  return str_replace($from, $to, $type);
+}
+
+/**
+ * Return the best possible path to provide to the user to create another node.
+ */
+function _greyhead_add_child_here_node_add_path($node) {
+  $path = 'node/add/' . _greyhead_add_child_here_node_type_url($node->type);
+  // If we are coming from a node creation path, re-use the path to save additional variables.
+  if (arg(0) == "node" && arg(1) == "add") {
+    $path = $_GET['q'];
+  }
+  return $path;
+}

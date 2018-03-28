@@ -1,0 +1,10 @@
+name = Content owned by this user
+description = Provides a tab on the user's profile listing the content which they own.
+core = 7.x
+package = Greyhead Features
+version = 7.x-1.0-20171204
+dependencies[] = views
+features[ctools][] = views:views_default:3.0
+features[features_api][] = api:2
+features[views_view][] = content_owned_by_this_user
+features_exclude[dependencies][ctools] = ctools

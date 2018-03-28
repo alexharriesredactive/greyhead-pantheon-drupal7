@@ -1,0 +1,15 @@
+name = "Add child page here"
+description = "Allows editors to create a new page with its menu automagically set to be a child of the current page."
+core = 7.x
+package = Greyhead Customisations
+files[] = greyhead_add_child_here.module
+files[] = greyhead_add_child_here.install
+files[] = greyhead_add_child_here.test
+configure = admin/structure/types/add-child-here
+
+version = "7.x-1.0"
+project = "greyhead_add_child_here"
+
+; This module requires greyhead_customisations as its form_alter call sets the
+; parent menu link and disables the fields from being altered.
+dependencies[] = greyhead_customisations

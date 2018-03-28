@@ -1,0 +1,15 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the paragraphs_nav_paragraph module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function paragraphs_nav_paragraph_install() {
+  paragraphs_pack_create_paragraph(PNP_BUNDLE_PARAGRAPH, 'Paragraphs navigation');
+  paragraphs_pack_add_field_title(PNP_BUNDLE_PARAGRAPH, 'Title');
+  paragraphs_nav_paragraph_add_field_blockreference(PNP_BUNDLE_PARAGRAPH, 'Navigation');
+}

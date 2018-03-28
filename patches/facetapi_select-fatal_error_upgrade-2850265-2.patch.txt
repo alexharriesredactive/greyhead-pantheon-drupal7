@@ -1,0 +1,11 @@
+diff --git a/facetapi_select.install b/facetapi_select.install
+index d95a825..9f06a95 100644
+--- a/facetapi_select.install
++++ b/facetapi_select.install
+@@ -16,5 +16,5 @@ function facetapi_select_uninstall() {
+  * Adjust the form selected class as to not break current installations.
+  */
+ function facetapi_select_update_7101(&$sandbox) {
+-  FaceTapiSelectDropdowns::setFormSelectedClass('form-select selected');
++  FacetapiSelectDropdowns::setFormSelectedClass('form-select selected');
+ }

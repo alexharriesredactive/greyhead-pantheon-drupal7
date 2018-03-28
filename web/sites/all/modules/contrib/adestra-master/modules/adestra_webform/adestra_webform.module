@@ -1,0 +1,383 @@
+<?php
+
+/**
+ * @file
+ * Adestra Webform Module.
+ */
+
+/**
+ * Implements hook_menu().
+ *
+ */
+function adestra_webform_menu() {
+  $items = array();
+
+  $items['admin/config/services/adestra/webform'] = array(
+    'title' => 'webforms',
+    'description' => 'Manage Adestra webforms',
+    'page callback' => 'adestra_webform_admin_overview',
+    'access arguments' => array('view adestra webforms'),
+    'file' => 'adestra_webform.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['node/%webform_menu/webform/adestra'] = array(
+    'title' => 'Adestra Summary',
+    'page callback' => 'adestra_webform_summary',
+    'page arguments' => array(1),
+    'access callback' => 'node_access',
+    'access arguments' => array('update', 1),
+    'file' => 'adestra_webform.admin.inc',
+    'weight' => 3,
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function adestra_webform_permission() {
+  return array(
+    'view adestra webforms' => array(
+      'title' => t('View Adestra webforms'),
+    ),
+  );
+}
+
+
+/**
+ * Implements hook_form_alter().
+ */
+function adestra_webform_form_webform_component_edit_form_alter(&$form, &$form_state, $form_id) {
+
+  if (in_array($form['type']['#value'], array('file', 'fieldset', 'grid', 'pagebreak'))) {
+    //DO NOTHING
+    return;
+  }
+  elseif ($form['type']['#value'] == 'select') {
+    $value_placeholder = t('%value - the value(s) selected by the user.');
+    $unselected_placeholder = t('%unselected - the value(s) NOT selected by the user.');
+    $action = t('selected');
+  }
+  else {
+    $value_placeholder = t('%value - the value entered by user.');
+    $unselected_placeholder = '';
+    $action = t('entered');
+  }
+
+  //Load the component array
+  $component = $form_state['build_info']['args'][1];
+
+  $form['extra']['adestra'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Adestra Integration'),
+    '#tree' => TRUE,
+    '#collapsible' => TRUE,
+  );
+
+  //ATTRIBUTE HANDLERS
+  $form['extra']['adestra']['attribute'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Attribute Handlers'),
+    '#collapsible' => TRUE,
+    '#description' => t("Specify a core-table field by using its name as a key (e.g. 'email'). Specifiy a data-table field by using a key in the format \"<table_id>.<field_name>\", e.g. \"3.survey_response\"."),
+  );
+  $form['extra']['adestra']['attribute']['not_empty'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('If a value has been @action', array('@action' => $action)),
+    '#collapsible' => TRUE,
+    '#collapsed' => (empty($component['extra']['adestra']['attribute']['not_empty']['attribute']) && empty($component['extra']['adestra']['attribute']['not_empty']['value'])),
+  );
+  $form['extra']['adestra']['attribute']['not_empty']['attribute'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Attribute Name'),
+    '#description' => t('The following tokens are available: @placeholders', array('@placeholders' => $value_placeholder . " " . $unselected_placeholder)),
+    '#default_value' => (!empty($component['extra']['adestra']['attribute']['not_empty']['attribute']) ? $component['extra']['adestra']['attribute']['not_empty']['attribute'] : ''),
+  );
+  $form['extra']['adestra']['attribute']['not_empty']['value'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Value'),
+    '#description' => t('The following tokens are available: @placeholders', array('@placeholders' => $value_placeholder . " " . $unselected_placeholder)),
+    '#default_value' => (!empty($component['extra']['adestra']['attribute']['not_empty']['value']) ? $component['extra']['adestra']['attribute']['not_empty']['value'] : ''),
+  );
+  $form['extra']['adestra']['attribute']['empty'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('If a value has not been @action', array('@action' => $action)),
+    '#collapsible' => TRUE,
+    '#states' => array(
+      'invisible' => array(
+        'input[name^="mandatory"]' => array('checked' => TRUE),
+      ),
+    ),
+    '#collapsed' => (empty($component['extra']['adestra']['attribute']['empty']['attribute']) && empty($component['extra']['adestra']['attribute']['empty']['value'])),
+  );
+  $form['extra']['adestra']['attribute']['empty']['attribute'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Attribute Name'),
+    '#description' => t('The following tokens are available: @placeholders', array('@placeholders' => $unselected_placeholder)),
+    '#default_value' => (!empty($component['extra']['adestra']['attribute']['empty']['attribute']) ? $component['extra']['adestra']['attribute']['empty']['attribute'] : ''),
+  );
+  $form['extra']['adestra']['attribute']['empty']['value'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Value'),
+    '#description' => t('The following tokens are available: @placeholders', array('@placeholders' => $unselected_placeholder)),
+    '#default_value' => (!empty($component['extra']['adestra']['attribute']['empty']['value']) ? $component['extra']['adestra']['attribute']['empty']['value'] : ''),
+  );
+
+  //LIST HANDLERS
+  $form['extra']['adestra']['subscribe'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('List Handlers'),
+    '#collapsible' => TRUE,
+  );
+  $form['extra']['adestra']['subscribe']['not_empty'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('If a value has been @action', array('@action' => $action)),
+    '#collapsible' => TRUE,
+    '#collapsed' => (empty($component['extra']['adestra']['subscribe']['not_empty']['sub_lists']) && empty($component['extra']['adestra']['subscribe']['not_empty']['unsub_lists'])),
+  );
+  $form['extra']['adestra']['subscribe']['not_empty']['sub_lists'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Subscribe to List(s)'),
+    '#description' => t('Pipe delimited list of list ids to subscribe to. E.g 1|2. The following tokens are available: @placeholders', array('@placeholders' => $value_placeholder . " " . $unselected_placeholder)),
+    '#default_value' => (!empty($component['extra']['adestra']['subscribe']['not_empty']['sub_lists']) ? $component['extra']['adestra']['subscribe']['not_empty']['sub_lists'] : ''),
+  );
+  $form['extra']['adestra']['subscribe']['not_empty']['unsub_lists'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Unsubscribe from List(s)'),
+    '#description' => t('Pipe delimited list of list ids to unsubscribe from. E.g 3|4. The following tokens are available: @placeholders', array('@placeholders' => $value_placeholder . " " . $unselected_placeholder)),
+    '#default_value' => (!empty($component['extra']['adestra']['subscribe']['not_empty']['unsub_lists']) ? $component['extra']['adestra']['subscribe']['not_empty']['unsub_lists'] : ''),
+  );
+  $form['extra']['adestra']['subscribe']['empty'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('If a value has not been @action', array('@action' => $action)),
+    '#collapsible' => TRUE,
+    '#states' => array(
+      'invisible' => array(
+        'input[name^="mandatory"]' => array('checked' => TRUE),
+      ),
+    ),
+    '#collapsed' => (empty($component['extra']['adestra']['subscribe']['empty']['sub_lists']) && empty($component['extra']['adestra']['subscribe']['empty']['unsub_lists'])),
+  );
+  $form['extra']['adestra']['subscribe']['empty']['sub_lists'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Subscribe to List(s)'),
+    '#description' => t('Pipe delimited list of list ids to unsubscribe from. E.g 3|4. The following tokens are available: @placeholders', array('@placeholders' => $unselected_placeholder)),
+    '#default_value' => (!empty($component['extra']['adestra']['subscribe']['empty']['sub_lists']) ? $component['extra']['adestra']['subscribe']['empty']['sub_lists'] : ''),
+  );
+  $form['extra']['adestra']['subscribe']['empty']['unsub_lists'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Unsubscribe from List(s)'),
+    '#description' => t('Pipe delimited list of list ids to unsubscribe from. E.g 3|4. The following tokens are available: @placeholders', array('@placeholders' => $unselected_placeholder)),
+    '#default_value' => (!empty($component['extra']['adestra']['subscribe']['empty']['unsub_lists']) ? $component['extra']['adestra']['subscribe']['empty']['unsub_lists'] : ''),
+  );
+  
+  //UNSUB LIST HANDLERS
+  $form['extra']['adestra']['unsub'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Unsub List Handlers'),
+      '#collapsible' => TRUE,
+  );
+  $form['extra']['adestra']['unsub']['not_empty'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('If a value has been @action', array('@action' => $action)),
+      '#collapsible' => TRUE,
+      '#collapsed' => (empty($component['extra']['adestra']['unsub']['not_empty']['sub_unsublists']) && empty($component['extra']['adestra']['unsub']['not_empty']['unsub_unsublists'])),
+  );
+  $form['extra']['adestra']['unsub']['not_empty']['sub_unsublists'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Subscribe to Unsub List(s)'),
+      '#description' => t('Pipe delimited list of unsublist ids to subscribe to. E.g 1|2. The following tokens are available: @placeholders', array('@placeholders' => $value_placeholder . " " . $unselected_placeholder)),
+      '#default_value' => (!empty($component['extra']['adestra']['unsub']['not_empty']['sub_unsublists']) ? $component['extra']['adestra']['unsub']['not_empty']['sub_unsublists'] : ''),
+  );
+  $form['extra']['adestra']['unsub']['not_empty']['unsub_unsublists'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Unsubscribe from Unsub List(s)'),
+      '#description' => t('Pipe delimited list of unsublist ids to unsubscribe from. E.g 3|4. The following tokens are available: @placeholders', array('@placeholders' => $value_placeholder . " " . $unselected_placeholder)),
+      '#default_value' => (!empty($component['extra']['adestra']['unsub']['not_empty']['unsub_unsublists']) ? $component['extra']['adestra']['unsub']['not_empty']['unsub_unsublists'] : ''),
+  );
+  $form['extra']['adestra']['unsub']['empty'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('If a value has not been @action', array('@action' => $action)),
+      '#collapsible' => TRUE,
+      '#states' => array(
+          'invisible' => array(
+              'input[name^="mandatory"]' => array('checked' => TRUE),
+          ),
+      ),
+      '#collapsed' => (empty($component['extra']['adestra']['unsub']['empty']['sub_unsublists']) && empty($component['extra']['adestra']['unsub']['empty']['unsub_unsublists'])),
+  );
+  $form['extra']['adestra']['unsub']['empty']['sub_unsublists'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Subscribe to Unsub List(s)'),
+      '#description' => t('Pipe delimited list of unsublist ids to unsubscribe from. E.g 3|4. The following tokens are available: @placeholders', array('@placeholders' => $unselected_placeholder)),
+      '#default_value' => (!empty($component['extra']['adestra']['unsub']['empty']['sub_unsublists']) ? $component['extra']['adestra']['unsub']['empty']['sub_unsublists'] : ''),
+  );
+  $form['extra']['adestra']['unsub']['empty']['unsub_unsublists'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Unsubscribe from  Unsub List(s)'),
+      '#description' => t('Pipe delimited list of unsublist ids to unsubscribe from. E.g 3|4. The following tokens are available: @placeholders', array('@placeholders' => $unselected_placeholder)),
+      '#default_value' => (!empty($component['extra']['adestra']['unsub']['empty']['unsub_unsublists']) ? $component['extra']['adestra']['unsub']['empty']['unsub_unsublists'] : ''),
+  );
+}
+
+/**
+ * Implements hook_webform_submission_insert().
+ */
+function adestra_webform_webform_submission_insert($node, $submission) {
+
+//  print "<pre>";
+//  print_r($submission);
+//  print "</pre>";
+//  exit;
+
+
+  $attributes = array();
+  $subscribe_lists = array();
+  $unsubscribe_lists = array();
+  $subscribe_unsublists = array();
+  $unsubscribe_unsublists = array();
+  
+  foreach ($node->webform['components'] as $cid => $component) {
+    if (in_array($component['type'], array('file', 'fieldset', 'grid', 'pagebreak'))) {
+      continue;
+    }
+    elseif ($component['type'] == 'select') {
+      //Convert multiline key-value options into array.
+      $options = _webform_select_options_from_text($component['extra']['items']);
+      //We only care about the keys, disregard the human-readable text
+      $options = array_keys($options);
+      //Lookup up the difference between total keys and selected key
+      $unselected = array_diff($options, $submission->data[$cid]['value']);
+    }
+    else {
+      $unselected = array();
+    }
+
+    $value = $submission->data[$cid]['value'];
+    //NON EMPTY HANDLING
+    if (!empty($value)) {
+      //NON EMPTY ATTRIBUTE HANDLING
+      if (!empty($component['extra']['adestra']['attribute']['not_empty']['attribute'])  && !empty($component['extra']['adestra']['attribute']['not_empty']['value'])) {
+        $attribute_name = $component['extra']['adestra']['attribute']['not_empty']['attribute'];
+        $attribute_value = $component['extra']['adestra']['attribute']['not_empty']['value'];
+        $attributes[$attribute_name] = str_replace(array('%value', '%unselected'), array(implode("|", $value), implode("|", $unselected)), $attribute_value);
+      }
+      //NON EMPTY LIST SUBSCRIPTION HANDLING
+      if (!empty($component['extra']['adestra']['subscribe']['not_empty']['sub_lists'])) {
+        $lists = array();
+        $sub_lists = $component['extra']['adestra']['subscribe']['not_empty']['sub_lists'];
+        if (strrpos($sub_lists, "%value") !== FALSE) {
+          $subscribe_lists = array_merge($subscribe_lists, $value);
+          $sub_lists = str_replace("%value", "", $sub_lists);
+        }
+        if (!empty($sub_lists) && strpos($sub_lists, "%unselected" !== FALSE)) {
+          $subscribe_lists = array_merge($subscribe_lists, $unselected);
+          $sub_lists = str_replace("%unselected", "", $sub_lists);
+        }
+        $subscribe_lists = array_merge($subscribe_lists, array_filter(explode("|", $sub_lists)));
+      }
+      //NON EMPTY LIST UNSUBSCRIPTION HANDLING
+      if (!empty($component['extra']['adestra']['subscribe']['not_empty']['unsub_lists'])) {
+        $lists = array();
+        $unsub_lists = $component['extra']['adestra']['subscribe']['not_empty']['unsub_lists'];
+        if (strrpos($unsub_lists, "%value") !== FALSE) {
+          $unsubscribe_lists = array_merge($unsubscribe_lists, $value);
+          $unsub_lists = str_replace("%value", "", $unsub_lists);
+        }
+        if (!empty($unsub_lists) && strrpos($unsub_lists, "%unselected") !== FALSE) {
+          $unsubscribe_lists = array_merge($unsubscribe_lists, $unselected);
+          $unsub_lists = str_replace("%unselected", "", $unsub_lists);
+        }
+        $unsubscribe_lists = array_merge($unsubscribe_lists, array_filter(explode("|", $unsub_lists)));
+      }
+      //NON EMPTY UNSUBLIST SUBSCRIPTION HANDLING
+      if (!empty($component['extra']['adestra']['unsub']['not_empty']['sub_unsublists'])) {
+        $lists = array();
+        $sub_unsublists = $component['extra']['adestra']['unsub']['not_empty']['sub_unsublists'];
+        if (strrpos($sub_unsublists, "%value") !== FALSE) {
+          $subscribe_unsublists = array_merge($subscribe_unsublists, $value);
+          $sub_unsublists = str_replace("%value", "", $sub_unsublists);
+        }
+        if (!empty($sub_unsublists) && strpos($sub_unsublists, "%unselected" !== FALSE)) {
+          $subscribe_unsublists = array_merge($subscribe_unsublists, $unselected);
+          $sub_unsublists = str_replace("%unselected", "", $sub_unsublists);
+        }
+        $subscribe_unsublists = array_merge($subscribe_unsublists, array_filter(explode("|", $sub_unsublists)));
+      }
+      //NON EMPTY UNSUBLIST UNSUBSCRIPTION HANDLING
+      if (!empty($component['extra']['adestra']['unsub']['not_empty']['unsub_unsublists'])) {
+        $lists = array();
+        $unsub_unsublists = $component['extra']['adestra']['unsub']['not_empty']['unsub_unsublists'];
+        if (strrpos($unsub_unsublists, "%value") !== FALSE) {
+          $unsubscribe_unsublists = array_merge($unsubscribe_unsublists, $value);
+          $unsub_unsublists = str_replace("%value", "", $unsub_unsublists);
+        }
+        if (!empty($unsub_unsublists) && strrpos($unsub_unsublists, "%unselected") !== FALSE) {
+          $unsubscribe_unsublists = array_merge($unsubscribe_unsublists, $unselected);
+          $unsub_unsublists = str_replace("%unselected", "", $unsub_unsublists);
+        }
+        $unsubscribe_unsublists = array_merge($unsubscribe_unsublists, array_filter(explode("|", $unsub_unsublists)));
+      }
+    }
+    //EMPTY HANDLING
+    else{
+      //EMPTY ATTRIBUTE HANDLING
+      if (!empty($component['extra']['adestra']['attribute']['empty']['attribute'])  && !empty($component['extra']['adestra']['attribute']['empty']['value'])) {
+        $attribute_name = $component['extra']['adestra']['attribute']['empty']['attribute'];
+        $attribute_value = $component['extra']['adestra']['attribute']['empty']['value'];
+        $attributes[$attribute_name] = str_replace('%unselected', implode("|", $unselected), $attribute_value);
+      }
+      //EMPTY LIST SUBSCRIPTION HANDLING
+      if (!empty($component['extra']['adestra']['subscribe']['empty']['sub_lists'])) {
+        $lists = array();
+        $sub_lists = $component['extra']['adestra']['subscribe']['empty']['sub_lists'];
+        if (strpos($sub_lists, "%unselected") !== FALSE) {
+          $subscribe_lists = array_merge($subscribe_lists, $unselected);
+          $sub_lists = str_replace("%unselected", "", $sub_lists);
+        }
+        $subscribe_lists += array_merge($subscribe_lists, array_filter(explode("|", $sub_lists)));
+      }
+      //EMPTY LIST UNSUBSCRIPTION HANDLING
+      if (!empty($component['extra']['adestra']['subscribe']['empty']['unsub_lists'])) {
+        $lists = array();
+        $unsub_lists = $component['extra']['adestra']['subscribe']['empty']['unsub_lists'];
+        if (strpos($unsub_lists, "%unselected") !== FALSE) {
+          $unsubscribe_lists = array_merge($unsubscribe_lists, $unselected);
+          $unsub_lists = str_replace("%unselected", "", $unsub_lists);
+        }
+        $unsubscribe_lists = array_merge($unsubscribe_lists, array_filter(explode("|", $unsub_lists)));
+      }
+      //EMPTY UNSUBLIST SUBSCRIPTION HANDLING
+      if (!empty($component['extra']['adestra']['unsub']['empty']['sub_unsublists'])) {
+        $lists = array();
+        $sub_unsublists = $component['extra']['adestra']['unsub']['empty']['sub_unsublists'];
+        if (strpos($sub_unsublists, "%unselected") !== FALSE) {
+          $subscribe_unsublists = array_merge($subscribe_unsublists, $unselected);
+          $sub_unsublists = str_replace("%unselected", "", $sub_unsublists);
+        }
+        $subscribe_unsublists += array_merge($subscribe_unsublists, array_filter(explode("|", $sub_unsublists)));
+      }
+      //EMPTY UNSUBLIST UNSUBSCRIPTION HANDLING
+      if (!empty($component['extra']['adestra']['unsub']['empty']['unsub_unsublists'])) {
+        $lists = array();
+        $unsub_unsublists = $component['extra']['adestra']['unsub']['empty']['unsub_unsublists'];
+        if (strpos($unsub_unsublists, "%unselected") !== FALSE) {
+          $unsubscribe_unsublists = array_merge($unsubscribe_unsublists, $unselected);
+          $unsub_unsublists = str_replace("%unselected", "", $unsub_unsublists);
+        }
+        $unsubscribe_unsublists = array_merge($unsubscribe_unsublists, array_filter(explode("|", $unsub_unsublists)));
+      }
+    }
+  }
+
+  if (isset($attributes['email'])) {
+      $id = adestra_create_contact(NULL, $attributes, 'email');
+      adestra_subscribe_contact_multiple($id, $subscribe_lists, $unsubscribe_unsublists);
+      adestra_unsubscribe_contact_multiple($id, $unsubscribe_lists, $subscribe_unsublists);
+  }
+  else{
+    watchdog('adestra_webform', "Webform @nid missing email component", array('@nid' => $node->nid), WATCHDOG_NOTICE);
+  }
+}

@@ -1,0 +1,15 @@
+name = Quantcast
+description = Provides integration with Quantcast.com media measurement and web analytics service.
+core = 7.x
+package = Statistics
+configure = admin/config/system/quantcast
+files[] = quantcast.install
+files[] = quantcast.module
+files[] = quantcast.admin.inc
+
+; Information added by Drupal.org packaging script on 2017-04-06
+version = "7.x-2.0"
+core = "7.x"
+project = "quantcast"
+datestamp = "1491507785"
+

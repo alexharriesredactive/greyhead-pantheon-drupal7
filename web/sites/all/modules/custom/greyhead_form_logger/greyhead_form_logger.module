@@ -1,0 +1,212 @@
+<?php
+
+/**
+ * @file
+ * Logs all form submissions to the Watchdog log.
+ *
+ * Logs contain a list of the original values (#default_value) compared
+ * against the submitted value, with highlighting of changed values.
+ *
+ * Useful for sites where you have multiple privileged editors, and some of
+ * them are prone to doing silly or naughty things because they think they
+ * can't be caught... ;o)
+ *
+ * This module has no configurable options and doesn't make its existence
+ * obvious.
+ *
+ * Note that password-type fields won't be captured, for hopefully-obvious
+ * reasons...!
+ *
+ * Caveat user: it's up to you to make sure the data captured by this
+ * module doesn't fall into the hands of people who shouldn't have it.
+ */
+
+/**
+ * Implements hook_form_alter().
+ */
+function greyhead_form_logger_form_alter(&$form, $form_state, $form_id) {
+  // Add a submit handler to the form.
+  if (empty($form['#submit'])) {
+    $form['#submit'] = [];
+  }
+
+  array_unshift($form['#submit'], 'greyhead_form_logger_form_submit_handler');
+}
+
+/**
+ * Submit handler for Greyhead Form Logger.
+ *
+ * This handler will record all submitted values, compared against the
+ * default values, for each form value. Password fields won't be recorded,
+ * though.
+ *
+ * @param $form
+ * @param $form_state
+ */
+function greyhead_form_logger_form_submit_handler($form, &$form_state) {
+  $values = [];
+
+  if (!empty($form_state['values'])) {
+    foreach ($form_state['values'] as $key => $value) {
+      $values[$key] = [
+        'original' => NULL,
+        'submitted' => (is_array($value) || is_object($value)) ? '<pre>' . print_r($value, TRUE) . '</pre>' : $value,
+        'changed' => NULL,
+      ];
+    }
+  }
+
+  // Recurse through the form and find the original values for each of the
+  // submitted values in the list above.
+  _greyhead_form_logger_form_get_values($values, $form);
+
+  // Extract password fields. A bit hacky, I know...
+  $password_fields = $values['#password_fields'];
+  unset($values['#password_fields']);
+
+  // Mark changed fields.
+  foreach ($values as $key => &$values_array) {
+    $values_array['changed'] = ($values_array['original'] !== $values_array['submitted']);
+  }
+
+  // Create a sanitised version of the form with no passwords.
+  $form_state['greyhead_form_logger_values'] = $form_state['values'];
+  _greyhead_form_logger_form_get_sanitised_values($form_state['greyhead_form_logger_values'], $password_fields);
+
+  // Assemble the text to log to Watchdog. Note that we run the variable
+  // replacements before sending to Watchdog, rather than the more-typical
+  // approach of submitting the text and variables to Watchdog separately,
+  // because this makes it easier for you to dump the plain text out of the
+  // database for forensic analysis. A potential @todo in the future might
+  // be to store this information in a module-specific schema.
+  global $user;
+
+  $log_lines = [];
+
+  $log_lines[] = 'Form ID "@form_id" submitted by @user_name on @date at @time with the following values:';
+
+  $log_lines[] = '';
+
+  foreach ($values as $key => $values_array) {
+    $log_lines[] = t('@changed_highlight field: [@key] Original: [!original] Submitted: [!submitted]', [
+      '@changed_highlight' => ($values_array['changed'] ? t('CHANGED') : t('Unchanged')),
+      '@key' => $key,
+      '!original' => $values_array['original'],
+      '!submitted' => $values_array['submitted'],
+    ]);
+  }
+
+  // Dump out the raw values, too. Trim to a maximum of 4Mb to avoid killing
+  // MySQL.
+  $raw_submitted_values = print_r($form_state['greyhead_form_logger_values'], TRUE);
+
+  if (strlen($raw_submitted_values) > 4096) {
+    $raw_submitted_values = substr($raw_submitted_values, 0, 4096) . '<br /><br />' . PHP_EOL . t('*** Text truncated at 4MB ***');
+  }
+
+  $log_lines[] = '';
+  $log_lines[] = '**************************************************************';
+  $log_lines[] = '**************************************************************';
+  $log_lines[] = 'Raw submitted values';
+  $log_lines[] = '**************************************************************';
+  $log_lines[] = '**************************************************************';
+  $log_lines[] = '';
+  $log_lines[] = '<pre>' . $raw_submitted_values . '</pre>';
+  $log_lines[] = '';
+
+  // This is commented out due to causing MySQL server timeouts.
+  //  $log_lines[] = '**************************************************************';
+  //  $log_lines[] = '**************************************************************';
+  //  $log_lines[] = 'Complete form data';
+  //  $log_lines[] = '**************************************************************';
+  //  $log_lines[] = '**************************************************************';
+  //  $log_lines[] = '';
+  //  $log_lines[] = '<pre>' . print_r($form_state['complete form'], TRUE) . '</pre>';
+  //  $log_lines[] = '';
+
+  watchdog('greyhead_form_logger', implode('<br />' . PHP_EOL, $log_lines), [
+    '@form_id' => $form['#id'],
+    '@user_name' => !empty($user->name) ? $user->name : t('Anonymous'),
+    '@date' => format_date(REQUEST_TIME, 'custom', 'd/m/Y'),
+    '@time' => format_date(REQUEST_TIME, 'custom', 'H:i:s'),
+  ], WATCHDOG_DEBUG);
+
+  $monkey = TRUE;
+}
+
+/**
+ * Gets the values from $form which are listed in $values.
+ *
+ * @param array $values
+ *   An array of values, in the form:
+ *
+ *   $values = [
+ *     'form_value_1' => [
+ *       'original' => <original value>,
+ *       'submitted' => <submitted value>,
+ *     ],
+ *     'form_value_2' => [
+ *       'original' => <original value>,
+ *       'submitted' => <submitted value>,
+ *     ],
+ *   ]
+ *
+ * @param array $form
+ *   A Drupal FAPI form array, or a child of the array.
+ */
+function _greyhead_form_logger_form_get_values(&$values, $form) {
+  // Make sure we have an array key for our password fields.
+  // @todo Move this into the function which initialises the $values array
+  if (empty($values['#password_fields'])) {
+    $values['#password_fields'] = [];
+  }
+
+  if (!empty($form)) {
+    foreach (element_children($form) as $key) {
+      // Is it a form element with a #default_value which exists in $values?
+      if (array_key_exists($key, $values)) {
+        if (!empty($form[$key]['#default_value'])) {
+          $values[$key]['original'] = (is_array($form[$key]['#default_value']) || is_object($form[$key]['#default_value'])) ? '<pre>' . print_r($form[$key]['#default_value'], TRUE) . '</pre>' : $form[$key]['#default_value'];
+        }
+      }
+
+      // If it's a password, blank out the values.
+      if (!empty($form[$key]['#type']) && in_array($form[$key]['#type'], [
+          'password',
+          'password_confirm',
+        ])) {
+        $values[$key]['original'] = $values[$key]['submitted'] = t('(password removed)');
+
+        // Add this field name into $values['#password_fields'] for our
+        // sanitisation function.
+        $values['#password_fields'][] = $key;
+      }
+
+      // Does the element have child elements?
+      if (!empty($form[$key]) && !empty(element_children($form[$key]))) {
+        _greyhead_form_logger_form_get_values($values, $form[$key]);
+      }
+    }
+  }
+}
+
+/**
+ * Loop through a form API array and remove any passwords.
+ *
+ * @param array $form
+ * @param array $password_fields
+ */
+function _greyhead_form_logger_form_get_sanitised_values(array &$form, array $password_fields = []) {
+  if (!empty($form) && is_array($form)) {
+    foreach (element_children($form) as $key) {
+      if (in_array($key, $password_fields)) {
+        $form[$key] = t('(password removed)');
+      }
+
+      // Does the element have child elements?
+      if (!empty($form[$key]) && is_array($form[$key]) && !empty(element_children($form[$key]))) {
+        _greyhead_form_logger_form_get_sanitised_values($form[$key], $password_fields);
+      }
+    }
+  }
+}

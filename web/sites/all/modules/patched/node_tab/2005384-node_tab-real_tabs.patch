@@ -1,0 +1,102 @@
+diff --git a/sites/all/modules/contrib/node_tab/node_tab.module b/sites/all/modules/contrib/node_tab/node_tab.module
+index 8b140c0..326ae19 100644
+--- a/sites/all/modules/contrib/node_tab/node_tab.module
++++ b/sites/all/modules/contrib/node_tab/node_tab.module
+@@ -41,11 +41,36 @@ function node_tab_menu() {
+     'access arguments' => array('administer content types'),
+     'type' => MENU_CALLBACK,
+   );
++  // If Panels is missing, provide a callback for displaying tab content by
++  // rendering the node in a specific node_tab view mode.
++  // @see node_tab_entity_info_alter()
++  if (!module_exists('panels')) {
++    $node_tabs = entity_load('node_tab');
++    foreach ($node_tabs as $tab) {
++      $items['node/%node/' . $tab->name] = array(
++        'title' => $tab->label,
++        'page callback' => 'node_tab_page_view',
++        'page arguments' => array(1, 2),
++        'access callback' => 'node_tab_page_access',
++        'access arguments' => array(1, $tab->name),
++        'weight' => $tab->weight,
++        'type' => MENU_LOCAL_TASK,
++      );
++    }
++
++  }
+ 
+   return $items;
+ }
+ 
+ /**
++ * Access callback for node tab.
++ */
++function node_tab_page_access($node, $tab_name) {
++  return node_access('view', $node) && node_tab_load($node->type, $tab_name);
++}
++
++/**
+  * Menu callback: confirm rebuilding of tab paths.
+  */
+ function node_tab_rebuild_confirm() {
+@@ -66,6 +91,34 @@ function node_tab_rebuild_confirm_submit($form, &$form_state) {
+ }
+ 
+ /**
++ * Page callback: Returns the content for a specific tab.
++ *
++ * The node is rendered using one of the node_tab view modes.
++ *
++ * @param $node
++ *   The node entity.
++ * @param $tab_name
++ *   The machine name of a tab.
++ *
++ * @return
++ *   A $page element suitable for use by drupal_render().
++ */
++function node_tab_page_view($node, $tab_name) {
++  $tab = node_tab_load($node->type, $tab_name);
++  if (!$tab) {
++    return MENU_NOT_FOUND;
++  }
++
++  $view_mode = 'node_tab_' . $tab_name;
++  // For markup consistency with other pages, use node_view_multiple() rather than node_view().
++  $nodes = node_view_multiple(array($node->nid => $node), $view_mode);
++  // Update the history table, stating that this user viewed this node.
++  node_tag_new($node);
++
++  return $nodes;
++}
++
++/**
+  * Implements hook_page_alter().
+  *
+  * Adds the tabs link to the Operations column on admin/structure/types.
+@@ -153,6 +206,25 @@ function node_tab_entity_info() {
+ }
+ 
+ /**
++ * Implements hook_entity_info_alter().
++ *
++ * If Panels is missing, adds a node view mode for each unique tab name.
++ *
++ * @see node_tab_page_view()
++ */
++function node_tab_entity_info_alter(&$entity_info) {
++  if (!module_exists('panels')) {
++    $node_tabs = entity_load('node_tab');
++    foreach ($node_tabs as $tab) {
++      $entity_info['node']['view modes']['node_tab_' . $tab->name] = array(
++        'label' => 'Node Tab: ' .  $tab->label,
++        'custom settings' => TRUE,
++      );
++    }
++  }
++}
++
++/**
+  * Access control for node_tab entities.
+  *
+  * @param $op

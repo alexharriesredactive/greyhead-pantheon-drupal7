@@ -1,0 +1,72 @@
+// Insert your styling here.
+h1.page-header {
+  padding-top: 1em;
+}
+
+// Space fields in content a little.
+.field {
+  margin: 0.5em 0;
+}
+
+// Field labels - slightly lighter.
+.field-label {
+  color: #777;
+}
+
+// Fix for inline labels not being, err, inline.
+.field-label-inline {
+  .clearfix;
+}
+
+.field-label-inline .field-label {
+  float: left;
+  max-width: 45%;
+
+  @media @tablet {
+    max-width: 25%;
+  }
+
+  @media @normal {
+    max-width: 15%;
+  }
+}
+
+.field-label-inline .field-items {
+  margin-left: 50%;
+
+  @media @tablet {
+    margin-left: 30%;
+  }
+
+  @media @normal {
+    margin-left: 20%;
+  }
+}
+
+.field-label-inline .field-items .field-item {
+  display: inline-block;
+  margin-right: 1em;
+}
+
+// Container may be fluid should be clearfixed.
+.container-may-be-fluid {
+  .clearfix;
+}
+
+// On paragraph pages, set .container-may-be-fluid to be .container.
+body:not(.node-type-paragraph-page) .main-container .container-may-be-fluid,
+body.node-type-paragraph-page.page-node-edit .main-container .container-may-be-fluid {
+  .container;
+}
+
+body.node-type-paragraph-page:not(.page-node-edit) .main-container .container-may-be-fluid {
+  .container-fluid;
+
+  // Don't pad in the edges of the col-xx-12 classes.
+  > section.col-sm-12,
+  > section.col-md-12,
+  > section.col-lg-12 {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}

@@ -1,0 +1,51 @@
+diff --git a/fe_nodequeue.module b/fe_nodequeue.module
+index f20e3c9..31e907e 100644
+--- a/fe_nodequeue.module
++++ b/fe_nodequeue.module
+@@ -223,8 +223,20 @@ function _fe_nodequeue_save_queue(array $settings) {
+  */
+ function _fe_nodequeue_get_qid_map() {
+   $map = &drupal_static(__FUNCTION__, array());
++  /**
++   * @see https://drupal.org/node/2050119
++   */
+   if (!$map) {
+-    $result = db_query("SELECT qid, name FROM {nodequeue_queue}");
++    if (_check_nodequeue_3_version()) {
++      $query = db_select('nodequeue_queue', 'q');
++      $query->innerJoin('nodequeue_subqueue', 's', 'q.title = s.title');
++      $query->addField('q', 'name', 'name');
++      $query->addField('s', 'sqid', 'qid');
++      $result = $query->execute();
++    } else {
++      $result = db_query("SELECT qid, name FROM {nodequeue_queue}");
++    }
++    
+     while ($get = $result->fetchObject()) {
+       $map[$get->name] = $get->qid;
+     }
+@@ -256,7 +268,7 @@ function _fe_nodequeue_get_qid_map() {
+ function _fe_nodequeue_load_queue_by_name($name, $bypass_cache = FALSE) {
+   $map = _fe_nodequeue_get_qid_map();
+   if (isset($map[$name])) {
+-    $queues = nodequeue_load_queues(array($map[$name]), $bypass_cache);
++    $queues = (_check_nodequeue_3_version()) ? nodequeue_load_queues(array($name), $bypass_cache) : nodequeue_load_queues(array($map[$name]), $bypass_cache);
+     if ($queues) {
+       return current($queues);
+     }
+@@ -264,3 +276,15 @@ function _fe_nodequeue_load_queue_by_name($name, $bypass_cache = FALSE) {
+ 
+   return array();
+ }
++
++/**
++ * Return TRUE if the Nodequeue module is at version 3.
++ * 
++ * @return boolean
++ */
++function _check_nodequeue_3_version() {
++  $nodequeue_info = system_get_info('module', 'nodequeue');
++  if (preg_match('/7\.x-3/', $nodequeue_info['version'])) {
++    return TRUE;
++  }
++}

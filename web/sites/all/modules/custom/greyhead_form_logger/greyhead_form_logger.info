@@ -1,0 +1,8 @@
+name = Greyhead Form Logger
+description = Logs all form submissions to the Watchdog log. Logs contain a list of the original values (#default_value) compared against the submitted value, with highlighting of changed values.
+core = 7.x
+version = "7.x-1.0-20171002"
+
+project = Greyhead
+
+dependencies[] = dblog

@@ -1,0 +1,5 @@
+<?php
+
+/**
+ * Mamp environment settings.
+ */

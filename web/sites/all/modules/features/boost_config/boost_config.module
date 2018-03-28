@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the Boost Configuration feature.
+ */
+
+include_once 'boost_config.features.inc';

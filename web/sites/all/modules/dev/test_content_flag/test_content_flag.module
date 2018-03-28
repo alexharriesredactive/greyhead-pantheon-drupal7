@@ -1,0 +1,292 @@
+<?php
+  /**
+   *  Include the features
+   */
+ include_once('test_content_flag.features.inc');
+ 
+ function test_content_flag_menu(){
+   $items = array();
+   
+   $items['admin/config/development/test_content'] = array(
+     'title' => 'Test Content',
+     'description' => 'Configure the test content settings',
+     'access arguments' => array('administer site configuration'),
+     'page callback' => 'drupal_get_form',
+     'page arguments' => array('test_content_flag_admin'),
+     'type' => MENU_NORMAL_ITEM
+   );
+   
+   $items['admin/config/development/test_content/settings'] = array(
+     'title' => 'Settings',
+     'description' => 'Configure the test content settings',
+     'page callback' => 'drupal_get_form',
+     'page arguments' => array('test_content_flag_admin'),
+     'access arguments' => array('administer site configuration'), 
+     'type' => MENU_DEFAULT_LOCAL_TASK
+   );
+   
+   $items['admin/config/development/test_content/list'] = array(
+     'title' => 'List of Test Content',
+     'page callback' => 'test_content_flag_get_list',
+     'page arguments' => array(),
+     'description' => 'A list of content marked as test for easy deleting',
+     'access arguments' => array('administer site configuration'),
+     'weight' => 2,
+     'type' => MENU_LOCAL_TASK
+   );
+   
+   return $items;
+ }
+
+ function test_content_flag_admin(){
+   $form = array();
+   $content_types = _test_content_flag_fetch_content_types();
+   $options = array();
+   $header = array( 'content_type'=>'Content Type');
+   foreach ($content_types as $ct_name=>$ct_label){
+     $options[$ct_name]=array('content_type'=>$ct_label);
+   }
+   $form['content_types'] = array(
+     '#type' => 'fieldset',
+     '#title' => 'Content Types',
+     '#description' => t('Check the box to add the flag Test Content to the content type.'),
+   );
+   $form['content_types']['info'] = array(
+     '#markup' => '<div class="messages warning">' . t('Unchecking a content type and saving this form will result in deletion of the test content field from that content type and the loss of all the data stored there.  Please proceed with caution.') . '</div>'
+   );
+   $form['content_types']['test_content_flag_content_types'] = array(
+    '#type' => 'tableselect',
+    '#header' => $header,
+    '#options' => $options,
+    '#description' => t('Which content types to add the test flag field to'),
+    '#multiple' => TRUE,
+    '#default_value' => variable_get('test_content_flag_content_types', array()),
+   );
+   $form['settings'] = array(
+     '#type' => 'fieldset',
+     '#title' => 'Settings'
+   );
+   $form['settings']['test_content_flag_default_value'] = array(
+     '#type' => 'checkbox',
+     '#title' => t('Content Defaults To Test'),
+     '#description' => t('Control whether content defaults to test content or not'),
+     '#default_value' => variable_get('test_content_flag_default_value', 0),
+   );
+   $form['settings']['test_content_flag_uninstall'] = array(
+     '#type' => 'checkbox',
+     '#title' => t('Delete all Test Content Fields on Uninstall'),
+     '#description' => t('If this box is checked, all the fields created by this module will be deleted when it is uninstalled.'),
+     '#default_value' => variable_get('test_content_flag_uninstall', 1),
+   );
+   
+   
+   $form = system_settings_form($form);
+   $form['#submit'][] = 'test_content_flag_submit';
+   return $form;
+ }
+/**
+ *  Handle the submit for the admin form and create/delete the fields as needed
+ */
+function test_content_flag_submit($form, $form_state){
+  $content_types = $form_state['values']['test_content_flag_content_types'];
+  
+  foreach($content_types as $type=>$value){
+    //check if we already have a field - add it otherwise
+    if($value !== 0){
+      _test_content_flag_add_field($type, 'test_content_flag', t('Test Content'), t('Mark this content as test content'));
+    } //otherwise remove a field if there is one 
+    else {
+      _test_content_flag_remove_field($type, 'test_content_flag');
+    }
+  }
+}
+
+function test_content_flag_get_list(){
+  
+  if(variable_get('test_content_flag_content_types', array())){
+    $render_array = array(
+      '#markup' => views_embed_view('test_content_nodes', 'block')
+    );
+  } else {
+    $render_array = array(
+      '#markup' => '<div class="messages warning">' . t('No content-types have been marked for test content') . '</div>',
+    );
+  }
+  return $render_array;
+}
+
+
+/**
+ *  Get a list of content types in a format that can be used as options for forms api
+ */
+function _test_content_flag_fetch_content_types(){
+  $nodes = entity_get_info('node');
+  
+  return _test_content_flag_make_options_array($nodes['bundles']);
+}
+
+/**
+ *  Quick utility function to make an options array out of the bundles array
+ */
+function _test_content_flag_make_options_array($values){
+  $options = array();
+  foreach($values as $key=>$bundle){
+    $options[$key] = $bundle['label'];
+  }
+  return $options;
+}
+
+function _test_content_flag_make_readable($camel_case) {
+  return preg_replace('/(.*?[a-z]{1})([A-Z]{1}.*?)/', '${1} ${2}', $camel_case);
+}
+
+/**
+  *  Add a field to a content_type - creates a taxonomy field
+  *  @param content_type should be the string machine name of a content type
+  *  @param field_name should be the string name of the field
+  *  @param taxonomy_name should be the machine name of the taxonomy you want to add a linked field to 
+  *  Some settings cannot be specified through this function - this is really just a utility wrapper for the fields api
+  */
+ function _test_content_flag_add_field($content_type, $field_name, $title='', $description=''){
+    node_types_rebuild();
+      
+    //We'll be using the boolean field out of the list module
+    $field_def = list_field_info();
+    //get the boolean version
+    $field_def = $field_def['list_boolean'];
+    
+    //we want to use the options_buttons widget
+    $widget = 'options_onoff';
+    
+    // Create all the fields we are adding to our content type.
+    // http://api.drupal.org/api/function/field_create_field/7
+    $field['field_name'] = strtolower(str_ireplace(' ', '_', $field_name));
+     
+    $field['settings']['allowed_values'] = array(0=>'Not Test Content', 1=>'Test Content');  
+   
+    $field['type'] = 'list_boolean';
+    
+    //handle any fieldexceptions that occur by just setting and error message and returning
+    try{
+      //only try to create the field if it doesn't exist, otherwise just create an instance
+      if(!field_read_field($field['field_name'], array('include_inactive' => TRUE))){
+        field_create_field($field);
+      }
+    } catch (FieldException $f){
+      drupal_set_message($f->getMessage(), 'error');
+      return;
+    }
+    
+    $instance = $field;
+    
+    // Create all the instances for our fields.
+    // http://api.drupal.org/api/function/field_create_instance/7
+    $instance['field_name'] = $field['field_name'];
+    $instance['title'] = $title ? $title : $field['field_name'];
+    $instance['label'] = $title ? $title : $field['field_name'];;
+    $instance['description'] = $description;
+    //set the display to default to hidden
+    $instance['display']['default']['type'] = 'hidden';
+
+                  
+    $instance['widget'] = array(
+      'type' => $widget,
+      'settings' => array(
+        'display_label' => TRUE, 
+      ),
+      'module' => 'options'
+    );
+    $instance['entity_type'] = 'node';
+    $instance['bundle'] = $content_type;
+    
+    $instance['default_value'] = array(
+      0 => array(
+        'value' => variable_get('test_content_flag_default_value', 0)
+      )
+    );
+    
+    $instance['settings'] = array(
+      'test_flag' => TRUE
+    );
+          
+    //handle any fieldexceptions that occur by just setting and error message and returning
+    try{
+      $existing = field_read_instance('node', $instance['field_name'], $content_type) ;
+      if(!$existing){
+        field_create_instance($instance);
+        drupal_set_message( t('Test Content Flag Field created for @type', array('@type' => $content_type)) );
+      } else {
+        //Commenting this out for now - we don't necessarily want to override updated settings / displays
+        
+        //If the field already exists then we should just update it
+        /* field_update_instance($instance);
+         * drupal_set_message( t('Test Content Flag Field updated for @type', array('@type' => $content_type)) );
+         */
+      }
+    } catch (FieldException $f){
+      drupal_set_message($f->getMessage(), 'error');
+      return;
+    }     
+}
+
+/**
+  *  Remove the test_content field from a content type (actually removes instances)
+  *  @param content_type - the string name of the content type
+  */
+ function _test_content_flag_remove_field($content_type, $field_name){
+   $instance['field_name'] = strtolower(str_ireplace(' ', '_', $field_name));
+   $existing = field_read_instance('node', $instance['field_name'], $content_type);
+   if($existing && isset($existing['settings']['test_flag']) && $existing['settings']['test_flag']){  
+     $instance['bundle'] = $content_type;
+     $instance['entity_type'] = 'node';
+     
+     field_delete_instance($instance);
+     drupal_set_message( t('Test Content Flag Field deleted for @type', array('@type' => $content_type)) );
+   }
+ }
+ 
+ 
+/**
+ * Implements hook_action_info().
+ */
+function test_content_flag_action_info() {
+  return array(
+    'test_content_flag_set_action' => array(
+      'type' => 'node',
+      'label' => t('Test content: Set Flag'),
+      'configurable' => FALSE,
+      'behavior' => array('changes_property'),
+      'triggers' => array('node_presave', 'node_insert', 'node_update'),
+      'aggregate' => TRUE,
+    ),
+    'test_content_flag_unset_action' => array(
+      'type' => 'node',
+      'label' => t('Test content: Unset Flag'),
+      'configurable' => FALSE,
+      'behavior' => array('changes_property'),
+      'triggers' => array('node_presave', 'node_insert', 'node_update'),
+      'aggregate' => TRUE,
+    ),
+  );
+}
+
+/**
+ * Sets the test content flag to 1 (Is test Content).
+ *
+ * @ingroup actions
+ */
+function test_content_flag_set_action($node, $context = array()) {
+  $node->test_content_flag = array('und' => array( array('value' => 1)));
+  watchdog('action', 'Set @type %title to Test Content.', array('@type' => node_type_get_name($node), '%title' => $node->title));
+}
+
+
+/**
+ * Sets the test content flag to 1 (Is test Content).
+ *
+ * @ingroup actions
+ */
+function test_content_flag_unset_action($node, $context = array()) {
+  $node->test_content_flag = array('und' => array( array('value' => 0)));
+  watchdog('action', 'Set @type %title to Not Test Content.', array('@type' => node_type_get_name($node), '%title' => $node->title));
+} 

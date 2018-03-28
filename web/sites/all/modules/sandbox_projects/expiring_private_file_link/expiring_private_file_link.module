@@ -1,0 +1,260 @@
+<?php
+// $Id: expiring_private_file_link.module 1777 2012-05-03 17:59:25Z kevin $!
+/**
+ * @file
+ * expiring_private_file_link module
+ *
+ * provides a field formatter for files that generates
+ * dynamic links to the content "epflink/hasd89a0s8d709a8s9d8f"
+ */
+
+define('EXPIRING_PRIVATE_FILE_LINK_EXPIREMINUTES_DEFAULT', 60);
+define('EXPIRING_PRIVATE_FILE_LINK_EXPIREONCLICK_DEFAULT', 0);
+define('EXPIRING_PRIVATE_FILE_LINK_NOACCESSMESSAGE_DEFAULT', 'You must log in or register to access this content.');
+
+/**
+ * Drupal Hooks
+ */
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function expiring_private_file_link_field_formatter_info() {
+  return array(
+    'expiring_private_file_link_formatter' => array(
+      'label' => t('Expiring Private File Link'),
+      'field types' => array('file'),
+    ),
+  );
+}
+/**
+ * Implements hook_field_formatter_view().
+ */
+function expiring_private_file_link_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $elements = array();
+  if ($display['type'] == 'expiring_private_file_link_formatter') {
+    expiring_private_file_link_page_no_cache();
+    foreach ($items as $delta => $item) {
+      $linktext = $item['description'];
+      if (!$linktext) {
+        $linktext = $item['filename'];
+      }
+      $epflink = expiring_private_file_link_get($item['uri'], 'uri');
+      $href = '/epflink/' . $epflink['hash'];
+      $elements[$delta]['#markup'] = "<a class='expiring_private_file_link' href='" . $href . "'>" . $linktext . "</a>";
+    }
+  }
+  return $elements;
+}
+/**
+ * Implements hook_menu().
+ */
+function expiring_private_file_link_menu() {
+  $items['epflink/%'] = array(
+    'page callback' => 'expiring_private_file_link_view',
+    'page arguments' => array(1),
+    'access callback' => 'expiring_private_file_link_access',
+    'access arguments' => array('access epflink content', NULL, 1),
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/config/system/expiring_private_file_link'] = array(
+    'title' => 'Expiring Private File Link settings',
+    'description' => 'Expiring Private File Link expiration settings',
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'drupal_get_form', 'page arguments' => array('expiring_private_file_link_settings'),
+    'access arguments' => array('access content'),
+  );
+  return $items;
+}
+/**
+ * Implements hook_settings().
+ */
+function expiring_private_file_link_settings($form) {
+  $form['expiring_private_file_link_expireminutes'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Number of minutes before the link expires'),
+    '#default_value' => variable_get('expiring_private_file_link_expireminutes', EXPIRING_PRIVATE_FILE_LINK_EXPIREMINUTES_DEFAULT),
+    '#size' => 11,
+    '#maxlength' => 11,
+    '#description' => t("Number of minutes until the link expires and a new hash must be generated."),
+    '#required' => TRUE,
+    '#attributes' => array(),
+  );
+  $form['expiring_private_file_link_expireonclick'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Expire links on click'),
+    '#default_value' => variable_get('expiring_private_file_link_expireonclick', EXPIRING_PRIVATE_FILE_LINK_EXPIREONCLICK_DEFAULT),
+    '#description' => t("If this is checked, links will be one-use only and when clicked they will expire (in addition to the time expiration)."),
+  );
+  $form['expiring_private_file_link_noaccessmessage'] = array(
+    '#type' => 'textarea',
+    '#title' => t('No Access Message'),
+    '#default_value' => variable_get('expiring_private_file_link_noaccessmessage', EXPIRING_PRIVATE_FILE_LINK_NOACCESSMESSAGE_DEFAULT),
+    '#description' => t("Message to show to users that don't have access to download the file that the link points to."),
+  );
+  return system_settings_form($form);
+}
+/**
+ * Implements hook_permission().
+ */
+function expiring_private_file_link_permission() {
+  return array(
+    'access epflink content' => array(
+      'title' => t('Access expiring private file links'),
+    ),
+  );
+}
+/**
+ * Implements hook_page_build().
+ */
+function expiring_private_file_link_page_build(&$page) {
+  $qs = drupal_get_query_parameters();
+  if (isset($qs['epflinkfile'])) {
+    expiring_private_file_link_serve_file($qs['epflinkfile']);
+  }
+}
+/**
+ * Module functions.
+ */
+
+/**
+ * Turn off page caching on a particular page
+ */
+function expiring_private_file_link_page_no_cache() {
+  drupal_add_http_header("Cache-Control", "no-cache");
+  drupal_add_http_header("Pragma", "no-cache");
+  drupal_add_http_header("Expires", "-1");
+}
+/**
+ * Retrieve a Expiring Private File Link from the db.
+ *
+ * @param string $identifier
+ *   Idenfier that you want to look up the link by
+ * @param string $keyfield
+ *   Field that contains the identifier
+ *
+ * @return array
+ *   Associative array of the expiring_private_file_link record
+ */
+function expiring_private_file_link_get($identifier, $keyfield) {
+  expiring_private_file_link_housekeeping();
+  $sql = "select
+        *
+      from
+        {expiring_private_file_link}
+      where
+        session = :session_id
+        and " . $keyfield . " = :identifier";
+  $result = db_query($sql, array(':session_id' => session_id(), ':identifier' => $identifier));
+  $result = $result->fetchAssoc();
+  if (!isset($result['hash']) or !$result['hash']) {
+    if ($keyfield == 'hash') {
+      // User clicked on an expired link.  No uri at this point,
+      // So don't need to create link (happens elsewhere).
+      $result = array();
+    }
+    else {
+      $result = expiring_private_file_link_create($identifier);
+    }
+  }
+  return $result;
+}
+/**
+ * Create a new hash for a uri / link
+ *
+ * @param string $uri
+ *   String containing the uri to link to
+ *
+ * @return array
+ *   Associative array of the expiring_private_file_link record that was created
+ */
+function expiring_private_file_link_create($uri) {
+  $expireminutes = variable_get('expiring_private_file_link_expireminutes', EXPIRING_PRIVATE_FILE_LINK_EXPIREMINUTES_DEFAULT);
+  $expire = time() + ($expireminutes * 60);
+  $hash = md5(mt_rand());
+  $plid = db_insert('expiring_private_file_link')->fields(array(
+    'hash' => $hash,
+    'uri' => $uri,
+    'session' => session_id(),
+    'expire' =>  $expire,
+  ))->execute();
+  $result = expiring_private_file_link_get($plid, 'plid');
+  return $result;
+}
+/**
+ * Delete a Expiring Private File Link record
+ *
+ * @param integer $plid
+ *   Integer containing Expiring Private File Link id (plid) to delete
+ */
+function expiring_private_file_link_delete($plid) {
+  $plid_deleted = db_delete('expiring_private_file_link')->condition('plid', $plid)->execute();
+}
+/**
+ * Access callback: check access and redirect to login if no access
+ *
+ * @param string $string
+ *   String containing access string to check
+ * @param string $account
+ *   User account to checkt
+ * @param string $hash
+ *   String containing the hash for the Expiring Private File Link that's trying
+ *     to be accessed
+ *
+ * @return boolean
+ *   TRUE if user has access.  Redirect to login if not.
+ */
+function expiring_private_file_link_access($string, $account = NULL, $hash = NULL) {
+  if (user_access($string, $account)) {
+    return TRUE;
+  }
+  $dest = $_SERVER['HTTP_REFERER'];
+  $dest = preg_replace("/^https?\:\/\/[^\/]+\//", "", $dest);
+  drupal_set_message(variable_get('expiring_private_file_link_noaccessmessage', EXPIRING_PRIVATE_FILE_LINK_NOACCESSMESSAGE_DEFAULT));
+  drupal_goto('user/login', array('query' => array('destination' => $dest)));
+}
+/**
+ * Redirect back to the calling page with hash in query string.
+ */
+function expiring_private_file_link_view($hash = NULL) {
+  $firstpart = $_SERVER['HTTP_REFERER'];
+  $qs = drupal_get_query_parameters();
+  if (strpos($firstpart, "?")) {
+    list($firstpart, $rawqs) = explode("?", $firstpart);
+  }
+  $qs['epflinkfile'] = $hash;
+  drupal_goto($firstpart, array('query' => $qs));
+}
+/**
+ * Serve up the file that the hash links to.
+ */
+function expiring_private_file_link_serve_file($hash) {
+  $oldepflink = expiring_private_file_link_get($hash, 'hash');
+  if (!isset($oldepflink['hash']) or $oldepflink['hash'] != $hash) {
+    drupal_set_message(t("We're sorry, but that link has expired.  We apologize for any inconvenience, and have generated a new link.  Please try again."), 'warning');
+    return FALSE;
+  }
+  $linkuri = file_create_url($oldepflink['uri']);
+  $uriobject = drupal_http_request($linkuri);
+  foreach ($uriobject->headers as $header => $value) {
+    drupal_add_http_header($header, $value);
+  }
+  readfile($linkuri);
+  if (variable_get('expiring_private_file_link_expireonclick', EXPIRING_PRIVATE_FILE_LINK_EXPIREONCLICK_DEFAULT)) {
+    $newepflink = expiring_private_file_link_create($oldepflink['uri']);
+    if (!isset($newepflink['plid']) or !$newepflink['plid']) {
+      drupal_set_message(t("Error creating new Expiring Private File Link hash... sorry."), 'error');
+    }
+    else {
+      expiring_private_file_link_delete($oldepflink['plid']);
+    }
+  }
+}
+/**
+ * Perform housekeeping and delete any expired links.
+ */
+function expiring_private_file_link_housekeeping() {
+  $num_delete = db_delete('expiring_private_file_link')
+    ->condition('expire', time(), "<")
+    ->execute();
+}
