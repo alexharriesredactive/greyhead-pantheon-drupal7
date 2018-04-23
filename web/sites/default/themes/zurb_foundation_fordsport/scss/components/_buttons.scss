@@ -1,0 +1,26 @@
+// Docs: http://foundation.zurb.com/docs/components/buttons.html
+//
+// Before adding styles be sure to modify variables in the
+// "scss/_variables.scss" file.
+
+.button {}
+
+ul.field-name-field-hp-welcome-ctas {
+  text-align: center;
+  margin-bottom: 0;
+
+  li {
+    @include inline-list();
+
+    // Slightly odd way of doing this, but we use &.field-item so the margin
+    // defined below isn't overridden by the mixin, above, which is applied
+    // after the rest of this element's definitions here. Weird...
+    &.field-item {
+      margin: 0 0 0 1em;
+    }
+
+    a {
+      @include button();
+    }
+  }
+}

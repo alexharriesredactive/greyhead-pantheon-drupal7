@@ -1,0 +1,24 @@
+div.node.node-event {
+  // Add a small border below event rows.
+  div.row {
+    padding-bottom: 1.5em;
+    border-bottom: $edge-color 1px solid;
+    margin-bottom: 1.5em;
+  }
+
+  // When we have an image, pull the text below it up a smidge.
+  div.row.location-and-time div.column {
+    margin-top: -4em;
+  }
+
+  div.row.location-and-time div.column.no-opacity {
+    background-color: $body-bg;
+  }
+
+  div.row.entry-restrictions {
+    div.highlight {
+      background-color: $highlightColor;
+      padding: 0.25em 1em;
+    }
+  }
+}

@@ -21,12 +21,11 @@
 ;
 ; @see common.settings.php for more info.
 ;
-SETTINGS_SITE_URLS[prod] = www.example.com
-SETTINGS_SITE_URLS[ra] = ra.example.com
-SETTINGS_SITE_URLS[stage] = stage.example.com
-SETTINGS_SITE_URLS[dev] = dev.example.com
-SETTINGS_SITE_URLS[local] = example.pantheon.d7.clarion.local
+SETTINGS_SITE_URLS[prod] = fordsport.org.uk
+SETTINGS_SITE_URLS[stage] = test.fordsport.org.uk
+SETTINGS_SITE_URLS[dev] = dev.fordsport.org.uk
+SETTINGS_SITE_URLS[local] = fordsport.d7.greyhead.local
 ; Pantheon temporary URLs.
-SETTINGS_SITE_URLS[prod-pantheon] = example.pantheonsite.io
-SETTINGS_SITE_URLS[stage-pantheon] = test-example.pantheonsite.io
-SETTINGS_SITE_URLS[dev-pantheon] = dev-example.pantheonsite.io
+;SETTINGS_SITE_URLS[prod-pantheon] = example.pantheonsite.io
+;SETTINGS_SITE_URLS[stage-pantheon] = test-example.pantheonsite.io
+;SETTINGS_SITE_URLS[dev-pantheon] = dev-example.pantheonsite.io

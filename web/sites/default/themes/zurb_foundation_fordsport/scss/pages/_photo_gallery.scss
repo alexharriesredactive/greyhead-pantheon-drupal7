@@ -1,0 +1,129 @@
+.node.node-photo-gallery.node-teaser {
+  @include clearfix();
+  margin: 1em 0 2em 0;
+}
+
+.gallery-image-title-subtitle {
+  position: relative;
+
+  //  // Media Query Sizes
+  //  $smartphone: em-calc(480px);
+  //  $tablet: em-calc(768px);
+  //  $desktop: em-calc(960px);
+  //  $desktop-large: em-calc(1440px);
+
+  @media #{$small-up} {
+    width: 300px;
+    height: 150px;
+
+    .gallery-title h2 {
+      font-size: 1em;
+    }
+    .gallery-subtitle h3 {
+      font-size: 0.9em;
+    }
+  }
+
+  @media #{$medium-up} {
+    width: 450px;
+    height: 225px;
+
+    .gallery-title h2 {
+      font-size: 1.2em;
+    }
+    .gallery-subtitle h3 {
+      font-size: 1.1em;
+    }
+  }
+
+  @media #{$large-up} {
+    width: 750px;
+    height: 375px;
+
+    .gallery-title h2 {
+      font-size: 1.4em;
+    }
+    .gallery-subtitle h3 {
+      font-size: 1.2em;
+    }
+  }
+
+  @media #{$xlarge-up} {
+    width: 960px;
+    height: 480px;
+
+    .gallery-title h2 {
+      font-size: 1.6em;
+    }
+    .gallery-subtitle h3 {
+      font-size: 1.3em;
+    }
+  }
+
+  @media #{$xxlarge-up} {
+//    width: 960px;
+//    height: 480px;
+
+    .gallery-title h2 {
+      font-size: 2em;
+    }
+    .gallery-subtitle h3 {
+      font-size: 1.4em;
+    }
+  }
+
+  .gallery-title-subtitle-container {
+    position: absolute;
+    top: auto;
+//    @media #{$large-up} { //top: 75%; }
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+
+    padding: 0.75em 1.5em;
+    @include semitransparentbg('black', 50);
+
+    a:link,
+    a:visited,
+    a:active,
+    a:hover {
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .gallery-title {
+      h2 {
+        margin: 0 0 0.125em 0;
+      }
+    }
+    .gallery-subtitle {
+      h3 {
+        margin: 0;
+      }
+    }
+  }
+
+  &:hover .gallery-title-subtitle-container {
+    a:link,
+    a:visited,
+    a:active,
+    a:hover {
+      color: $fordsport-light-blue;
+      text-decoration: none;
+    }
+  }
+
+  .gallery-image {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1;
+
+    img {
+      width: 100%;
+    }
+  }
+}
