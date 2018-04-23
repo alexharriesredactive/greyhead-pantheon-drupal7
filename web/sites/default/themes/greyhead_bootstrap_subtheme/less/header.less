@@ -1,0 +1,72 @@
+// Header styling.
+// Don't float .navbar-header.
+.navbar-header {
+  float: none;
+
+  .site-info,
+  .region-navigation .block {
+    float: left;
+  }
+
+  .region-navigation .block {
+    margin-top: 0.5em;
+  }
+
+  // Search form.
+  form#search-block-form {
+    margin: 0;
+  }
+
+  #block-search-form {
+    float: none;
+    margin: 5px 0 5px 5px;
+
+    @media @normal {
+      float: right;
+      max-width: 25%;
+    }
+  }
+
+  .navbar-search .control-group {
+    margin-bottom:0px;
+  }
+}
+
+// Hide the .navbar-toggle-label.
+.navbar-toggle-label {
+  display: none;
+}
+
+// Don't pad the H1 with the site name in the header.
+h1.site-name-link {
+  margin: 0;
+  padding: 0;
+
+  a.navbar-brand {
+    float: none;
+    padding: 0;
+    margin: 13px 20px 13px 0;
+  }
+}
+
+// Remove the boring default grey from the header.
+.navbar-default {
+  background-color: transparent;
+  border: 0;
+  border-bottom: @faint-edge-colour 1px solid;
+}
+
+// Remove the borders and drop shadows from the dropdown menus.
+.dropdown-menu {
+  border: 0;
+  .box-shadow(0);
+}
+
+// Don't style the breadcrumbs so heavily.
+.breadcrumb {
+  padding: 0;
+  margin: 0 0 1.5em 0;
+  font-size: 1.2rem;
+  background-color: transparent;
+  border: 0;
+}
