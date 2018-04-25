@@ -140,8 +140,12 @@ function advagg_js_compress_advagg_get_js_file_contents_alter(&$contents, $filen
   $info = advagg_get_info_on_file($filename);
   if (!isset($info['advagg_js_compress'][$compressor]['code'])) {
     // Test file here on the spot.
-    $compressors_to_test = advagg_js_compress_get_enabled_compressors($aggregate_settings);
-    $info['advagg_js_compress'] = advagg_js_compress_run_test($filename, $info, $compressors_to_test);
+    if (variable_get('advagg_cache_level', ADVAGG_CACHE_LEVEL) == 0
+      || variable_get('advagg_cache_level', ADVAGG_CACHE_LEVEL) == 1
+    ) {
+      $compressors_to_test = advagg_js_compress_get_enabled_compressors($aggregate_settings);
+      $info['advagg_js_compress'] = advagg_js_compress_run_test($filename, $info, $compressors_to_test);
+    }
   }
 
   // Compress it if it passes the test.
@@ -480,6 +484,7 @@ function advagg_js_compress_string_contains_multibyte_characters($string) {
 function advagg_js_compress_jsminplus(&$contents, $log_errors = TRUE) {
   $no_errors = TRUE;
   $contents_before = $contents;
+  $old_error = error_get_last();
 
   // Set max nesting level.
   if (!class_exists('JSMinPlus')) {
@@ -501,12 +506,18 @@ function advagg_js_compress_jsminplus(&$contents, $log_errors = TRUE) {
   ob_start();
   try {
     // JSMin+ the contents of the aggregated file.
-    $contents = JSMinPlus::minify($contents);
+    $contents = @JSMinPlus::minify($contents);
 
     // Capture any output from JSMinPlus.
     $error = trim(ob_get_contents());
     if (!empty($error)) {
       $no_errors = FALSE;
+      throw new Exception($error);
+    }
+    $recent_error = error_get_last();
+    if (!empty($recent_error) && serialize($recent_error) !== serialize($old_error)) {
+      $no_errors = FALSE;
+      $error = print_r($recent_error, TRUE);
       throw new Exception($error);
     }
   }
@@ -639,6 +650,7 @@ function advagg_js_compress_run_test($filename, array $info = array(), array $co
     $run_locally = TRUE;
     // Run this via httprl if possible.
     if (module_exists('httprl') && httprl_is_background_callback_capable()) {
+      $run_locally = FALSE;
       // Setup callback options array.
       $callback_options = array(
         array(
@@ -677,7 +689,7 @@ function advagg_js_compress_run_test($filename, array $info = array(), array $co
       // Try locally if all return back -1 (something wrong with httprl).
       foreach ($results as $key => $value) {
         if ($value['code'] != -1) {
-          $run_locally = FALSE;
+          $run_locally = TRUE;
           break;
         }
       }

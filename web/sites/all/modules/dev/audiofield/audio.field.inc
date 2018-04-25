@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Implement an audio field, based on the file module's file field.
@@ -8,8 +9,8 @@
  * Implements hook_field_prepare_view().
  */
 function audiofield_field_prepare_view($entity_type, $entities, $field, $instances, $langcode, &$items) {
-  //TODO: Check this:
-  //  Remove files specified to not be displayed.
+  // TODO: Check this.
+  // Remove files specified to not be displayed.
   foreach ($entities as $id => $entity) {
     foreach ($items[$id] as $delta => $item) {
       if (!file_field_displayed($item, $field)) {
@@ -38,7 +39,6 @@ function audiofield_field_widget_info() {
       'field types' => array('file'),
       'settings' => array(
         'progress_indicator' => 'throbber',
-        //'file_extensions' => 'mp3',
       ),
       'behaviors' => array(
         'multiple values' => FIELD_BEHAVIOR_CUSTOM,
@@ -76,21 +76,17 @@ function audiofield_field_widget_settings_form($field, $instance) {
  */
 function audiofield_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
 
-  // Add display_field setting to field because file_field_widget_form() assumes it is set.
+  // Add display_field setting; file_field_widget_form() assumes it is set.
   $field['settings']['display_field'] = 0;
 
   $elements = file_field_widget_form($form, $form_state, $field, $instance, $langcode, $items, $delta, $element);
-  $settings = $instance['settings'];
 
-  foreach (element_children($elements) as $delta) {
-    $elements[$delta]['#process'] = array_merge(element_info_property('managed_file', '#process', array()), array('audiofield_field_widget_process'));
-  }
   if ($field['cardinality'] == 1) {
     // If there's only one field, return it as delta 0.
     if (empty($elements[0]['#default_value']['fid'])) {
       $elements[0]['#description'] = theme('file_upload_help', array(
         'description' => $instance['description'],
-        'upload_validators' => $elements[0]['#upload_validators']
+        'upload_validators' => $elements[0]['#upload_validators'],
       ));
     }
   }
@@ -104,16 +100,16 @@ function audiofield_field_widget_form(&$form, &$form_state, $field, $instance, $
 /**
  * An element #process callback for the audiofield_widget field type.
  *
- * Display audio player in node edit mode
+ * Display audio player in node edit mode.
  */
 function audiofield_field_widget_process($element, &$form_state, $form) {
   $fid = isset($element['#value']['fid']) ? $element['#value']['fid'] : 0;
-  
+
   $item = $element['#value'];
   $item['fid'] = $element['fid']['#value'];
   $field = field_widget_field($element, $form_state);
   $instance = field_widget_instance($element, $form_state);
-   // Add the display field if enabled.
+  // Add the display field if enabled.
   if (!empty($field['settings']['display_field']) && $item['fid']) {
     $element['display'] = array(
       '#type' => empty($item['fid']) ? 'hidden' : 'checkbox',
@@ -129,20 +125,17 @@ function audiofield_field_widget_process($element, &$form_state, $form) {
     );
   }
   if ($fid && $element['#file']) {
-    $audiofile = file_create_url($element['#file']->uri);
     $info = pathinfo($element['#file']->uri);
     $op = $info['extension'];
     $element['filename'] = array(
-      '#type' => 'markup',
-      '#markup' => audiofield_get_player($audiofile, $op),
+      'player' => audiofield_get_player($element['#file']->uri, $op),
       '#weight' => -10,
     );
   }
-  
+
   // Add the description field if enabled.
   if (!empty($instance['settings']['description_field']) && $item['fid']) {
     $element['description'] = array(
-      '#type' => 'textfield',
       '#title' => t('Description'),
       '#value' => isset($item['description']) ? $item['description'] : '',
       '#type' => variable_get('file_description_type', 'textfield'),
@@ -150,6 +143,38 @@ function audiofield_field_widget_process($element, &$form_state, $form) {
       '#description' => t('The description may be used as the label of the link to the file.'),
     );
   }
+
+  /*
+   * Adjust the Ajax settings so that on upload and remove of any individual
+   * file, the entire group of file fields is updated together.
+   */
+  if ($field['cardinality'] != 1) {
+    $parents = array_slice($element['#array_parents'], 0, -1);
+    $new_path = 'file/ajax/' . implode('/', $parents) . '/' . $form['form_build_id']['#value'];
+    $field_element = drupal_array_get_nested_value($form, $parents);
+    $new_wrapper = $field_element['#id'] . '-ajax-wrapper';
+    foreach (element_children($element) as $key) {
+      if (isset($element[$key]['#ajax'])) {
+        $element[$key]['#ajax']['path'] = $new_path;
+        $element[$key]['#ajax']['wrapper'] = $new_wrapper;
+      }
+    }
+    unset($element['#prefix'], $element['#suffix']);
+  }
+
+  /*
+   * Add another submit handler to the upload and remove buttons, to implement
+   * functionality needed by the field widget. This submit handler, along with
+   * the rebuild logic in audiofield_field_widget_form() requires the entire
+   * field, not just the individual item, to be valid.
+   */
+  foreach (array('upload_button', 'remove_button') as $key) {
+    $element[$key]['#submit'][] = 'file_field_widget_submit';
+    $element[$key]['#limit_validation_errors'] = array(
+      array_slice($element['#parents'], 0, -1),
+    );
+  }
+
   return $element;
 }
 
@@ -168,6 +193,11 @@ function audiofield_field_formatter_info() {
       'field types' => array('file'),
       'description' => t('Displays only an audio player.'),
     ),
+    'audiofield_details' => array(
+      'label' => t('Audio player with details'),
+      'field types' => array('file'),
+      'description' => t('Displays only an audio player with details.'),
+    ),
   );
 
   return $formatters;
@@ -175,17 +205,18 @@ function audiofield_field_formatter_info() {
 
 /**
  * Implements hook_field_formatter_view().
-TODO: Can implement playlists to group audios hold in multiple valued fields
+ *
+ * TODO: Implement playlists to group audios hold in multiple valued fields.
  */
 function audiofield_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
   $elements = array();
 
   switch ($display['type']) {
-    case 'audiofield_embedded' :
+    case 'audiofield_embedded':
     case 'audiofield_nodownload':
+    case 'audiofield_details':
       global $user;
       foreach ($items as $delta => $item) {
-        $audiofile = file_create_url($item['uri']);
         $info = pathinfo($item['uri']);
         $op = $info['extension'];
         $options = array(
@@ -194,21 +225,37 @@ function audiofield_field_formatter_view($entity_type, $entity, $field, $instanc
           'field' => $field,
           'instance' => $instance,
           'langcode' => $langcode,
-          'items' => $items,
+          'item' => $item,
           'display' => $display,
         );
 
-        $download_link = '';
-        if($display['type'] == 'audiofield_embedded') {
-          if ($user->uid == $item['uid'] && user_access('download own audio files')) {
-            $download_link .= '<div class="audio-download"><b>' . t('Download') . ':</b>' . theme('file_link', array('file' => (object) $item)) . '</div>';
-          }
-          elseif (user_access('download all audio files')) {
-            //If user has permission to download all audio files, then display download link
-            $download_link .= '<div class="audio-download"><b>' . t('Download') . ':</b>' . theme('file_link', array('file' => (object) $item)) . '</div>';
-          }
+        $elements[$delta] = array(
+          'player' => audiofield_get_player($item['uri'], $op, $options),
+        );
+        // Display the file description if one is available.
+        if (isset($item['description']) && !empty($item['description'])) {
+          $elements[$delta]['description'] = array(
+            '#type' => 'container',
+            '#attributes' => array(
+              'class' => 'description',
+            ),
+            '#children' => $item['description'],
+          );
         }
-        $elements[] = array('#markup' => audiofield_get_player($audiofile, $op, $options).$download_link);
+        // Display download link.
+        if ($display['type'] == 'audiofield_embedded' && (user_access('download all audio files') || ($user->uid == $item['uid'] && user_access('download own audio files')))) {
+          $elements[$delta]['download'] = array(
+            '#type' => 'container',
+            '#attributes' => array(
+              'class' => array(
+                'audio-download',
+              ),
+            ),
+            '#children' => t('<strong>Download</strong>: !file_link', array(
+              '!file_link' => theme('file_link', array('file' => (object) $item)),
+            )),
+          );
+        }
       }
       break;
   }

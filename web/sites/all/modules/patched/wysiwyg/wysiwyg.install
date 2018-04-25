@@ -378,60 +378,54 @@ function wysiwyg_update_7203() {
  * Remove empty editor profiles and update existing profiles.
  */
 function wysiwyg_update_7204() {
-  // Actively check to confirm that the WYSIWYG module is enabled; this
-  // avoids a fatal error at line 8048 of common.inc in cases where the
-  // WYSIWYG module's database updates are attempted despite the module
-  // being disabled.
-  if (module_exists('wysiwyg')) {
-    // Remove unused profiles.
-    $query = db_delete('wysiwyg')
-      ->condition('editor', '')
-      ->execute();
-    $query = db_select('wysiwyg', 'w')
-      ->fields('w', ['format', 'editor', 'settings']);
-    drupal_load('module', 'wysiwyg');
-    if (module_exists('ctools')) {
-      drupal_load('module', 'ctools');
-    }
-    foreach ($query->execute() as $profile) {
-      // Clear the editing caches.
-      if (module_exists('ctools')) {
-        ctools_include('object-cache');
-        ctools_object_cache_clear_all('wysiwyg_profile', 'format' . $profile->format);
-      }
-      cache_clear_all('wysiwyg_profile:format' . $profile->format, 'cache');
-      // Move profile state to its own section.
-      $settings = unserialize($profile->settings);
-      if (!empty($settings['_profile_preferences'])) {
-        // Skip in case of re-run.
-        continue;
-      }
-      $preferences = [
-        'add_to_summaries' => !empty($settings['add_to_summaries']),
-        'default' => $settings['default'],
-        'show_toggle' => $settings['show_toggle'],
-        'user_choose' => $settings['user_choose'],
-        'version' => NULL,
-      ];
-      unset($settings['add_to_summaries'], $settings['default'], $settings['show_toggle'], $settings['user_choose']);
-      if (!empty($settings['library'])) {
-        $prefereces['library'] = $settings['library'];
-        unset($settings['library']);
-      }
-      $editor = wysiwyg_get_editor($profile->editor);
-      if ($editor['installed']) {
-        $preferences['version'] = $editor['installed version'];
-      }
-      $settings['_profile_preferences'] = $preferences;
-      db_update('wysiwyg')
-        ->condition('format', $profile->format)
-        ->fields([
-          'settings' => serialize($settings),
-        ])
-        ->execute();
-    }
-    wysiwyg_profile_cache_clear();
+  // Remove unused profiles.
+  $query = db_delete('wysiwyg')
+    ->condition('editor', '')
+    ->execute();
+  $query = db_select('wysiwyg', 'w')
+    ->fields('w', array('format', 'editor', 'settings'));
+  drupal_load('module', 'wysiwyg');
+  if (module_exists('ctools')) {
+    drupal_load('module', 'ctools');
   }
+  foreach ($query->execute() as $profile) {
+    // Clear the editing caches.
+    if (module_exists('ctools')) {
+      ctools_include('object-cache');
+      ctools_object_cache_clear_all('wysiwyg_profile', 'format' . $profile->format);
+    }
+    cache_clear_all('wysiwyg_profile:format' . $profile->format, 'cache');
+    // Move profile state to its own section.
+    $settings = unserialize($profile->settings);
+    if (!empty($settings['_profile_preferences'])) {
+      // Skip in case of re-run.
+      continue;
+    }
+    $preferences = array(
+      'add_to_summaries' => !empty($settings['add_to_summaries']),
+      'default' => $settings['default'],
+      'show_toggle' => $settings['show_toggle'],
+      'user_choose' => $settings['user_choose'],
+      'version' => NULL,
+    );
+    unset($settings['add_to_summaries'], $settings['default'], $settings['show_toggle'], $settings['user_choose']);
+    if (!empty($settings['library'])) {
+      $prefereces['library'] = $settings['library'];
+      unset($settings['library']);
+    }
+    $editor = wysiwyg_get_editor($profile->editor);
+    if ($editor['installed']) {
+      $preferences['version'] = $editor['installed version'];
+    }
+    $settings['_profile_preferences'] = $preferences;
+    db_update('wysiwyg')
+      ->condition('format', $profile->format)
+      ->fields(array(
+        'settings' => serialize($settings),
+      ))
+      ->execute();
+  }
+  wysiwyg_profile_cache_clear();
 }
 
 /**

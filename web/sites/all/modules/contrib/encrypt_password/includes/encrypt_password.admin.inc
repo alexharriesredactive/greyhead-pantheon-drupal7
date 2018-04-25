@@ -109,7 +109,7 @@ function encrypt_password_bulk_password_update($settings) {
     'operations' => array(
       array('encrypt_password_batch_process', array($settings)),
     ),
-    'file' => drupal_get_path('module', 'encrypt_password') . '/includes/encrypt_password_batch.inc',
+    'file' => drupal_get_path('module', 'encrypt_password') . '/includes/encrypt_password.batch.inc',
     'finished' => 'encrypt_password_batch_finished',
     'title' => t('Processing user passwords'),
   );
