@@ -10,9 +10,9 @@ dependencies[] = list
 dependencies[] = jquery_update
 dependencies[] = entity
 dependencies[] = libraries (2.x)
-; Information added by Drupal.org packaging script on 2016-01-20
-version = "7.x-1.1"
+; Information added by Drupal.org packaging script on 2017-11-28
+version = "7.x-1.2"
 core = "7.x"
 project = "bootstrap_carousel"
-datestamp = "1453328344"
+datestamp = "1511889788"
 

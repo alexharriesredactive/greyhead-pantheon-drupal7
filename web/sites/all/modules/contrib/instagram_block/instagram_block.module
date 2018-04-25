@@ -43,16 +43,18 @@ function instagram_block_help($path, $arg) {
 function instagram_block_block_info() {
   // @todo Find a better way to manage access for tag block.
   $tag_block = variable_get('instagram_block_enable_tag_block', FALSE);
+  $block_config = variable_get('instagram_block_user_block_settings', array());
 
   $blocks['instagram_block'] = array(
     'info' => t('Instagram Block - User Block'),
-    'cache' => DRUPAL_CACHE_GLOBAL,
+    'cache' => isset($block_config['block_cache']) ? $block_config['block_cache'] : DRUPAL_CACHE_GLOBAL,
   );
 
   if ($tag_block) {
+    $tag_block_config = variable_get('instagram_block_tag_block_settings', array());
     $blocks['instagram_block_tag'] = array(
       'info' => t('Instagram Block - Tag Block'),
-      'cache' => DRUPAL_CACHE_GLOBAL,
+      'cache' => isset($tag_block_config['block_cache']) ? $tag_block_config['block_cache'] : DRUPAL_CACHE_GLOBAL,
     );
   }
 
@@ -70,7 +72,6 @@ function instagram_block_block_configure($delta = '') {
 
   // Default values
   $empty = array(
-    'user_id' => '',
     'access_token' => '',
   );
 
@@ -112,6 +113,19 @@ function instagram_block_block_configure($delta = '') {
     '#options' => $image_options,
   );
 
+  $form['block_cache'] = array(
+    '#type' => 'select',
+    '#title' => t('Block Cache Settings'),
+    '#description' => t('Configure block caching.'),
+    '#options' => array(
+      DRUPAL_CACHE_PER_ROLE => t('Cache block per role'),
+      DRUPAL_CACHE_PER_USER => t('Cache block per user'),
+      DRUPAL_CACHE_PER_PAGE => t('Cache block per page'),
+      DRUPAL_CACHE_GLOBAL => t('Cache block globally'),
+      DRUPAL_NO_CACHE => t('Don\'t cache block'),
+    ),
+  );
+
   switch ($delta) {
     case 'instagram_block':
       // Store data from variable in $form for now.
@@ -124,6 +138,7 @@ function instagram_block_block_configure($delta = '') {
       $form['width']['#default_value'] = isset($form['#block_data']['width']) ? $form['#block_data']['width'] : '';
       $form['height']['#default_value'] = isset($form['#block_data']['height']) ? $form['#block_data']['height'] : '';
       $form['img_resolution']['#default_value'] = isset($form['#block_data']['img_resolution']) ? $form['#block_data']['img_resolution'] : '';
+      $form['block_cache']['#default_value'] = isset($form['#block_data']['block_cache']) ? $form['#block_data']['block_cache'] : DRUPAL_CACHE_GLOBAL;
 
       break;
     case 'instagram_block_tag':
@@ -136,6 +151,7 @@ function instagram_block_block_configure($delta = '') {
       $form['width']['#default_value'] = isset($form['#block_data']['width']) ? $form['#block_data']['width'] : '';
       $form['height']['#default_value'] = isset($form['#block_data']['height']) ? $form['#block_data']['height'] : '';
       $form['img_resolution']['#default_value'] = isset($form['#block_data']['img_resolution']) ? $form['#block_data']['img_resolution'] : '';
+      $form['block_cache']['#default_value'] = isset($form['#block_data']['block_cache']) ? $form['#block_data']['block_cache'] : DRUPAL_CACHE_GLOBAL;
 
       $form['tag'] = array(
         '#type' => 'textfield',
@@ -178,20 +194,20 @@ function instagram_block_block_save($delta = '', $edit = array()) {
  * Fetches the instagram photos and creates a render array.
  */
 function instagram_block_block_view($delta = '') {
-  $block = array();
-
-  // Add instagram_block specific styles.
-  drupal_add_css(drupal_get_path('module', 'instagram_block') . '/css/instagram-block.css');
-
   // Get configuration values.
   $config = variable_get('instagram_block_admin_settings', array());
   $content = array();
   $block = array(
     'subject' => 'Instagram block',
+    'content' => array(
+      '#attached' => array(
+        'css' => array(drupal_get_path('module', 'instagram_block') . '/css/instagram-block.css'),
+      ),
+    ),
   );
 
   // Check that block configuration is available.
-  if (!isset($config['user_id']) || !isset($config['access_token'])) {
+  if (empty($config['access_token'])) {
     // Remind user to fill in configuration.
     $content = instagram_block_get_configuration_reminder();
   }
@@ -201,12 +217,14 @@ function instagram_block_block_view($delta = '') {
       switch ($delta) {
         case 'instagram_block':
           $values = variable_get('instagram_block_user_block_settings', array());
+          drupal_alter('instagram_block_settings', $delta, $values, $config);
           $request = new InstagramRequest($config, $values);
           $request->requestUserMedia();
           $block['subject'] = t('Instagram Block - User Block');
           break;
         case 'instagram_block_tag':
           $values = variable_get('instagram_block_tag_block_settings', array());
+          drupal_alter('instagram_block_settings', $delta, $values, $config);
           $request = new InstagramRequest($config, $values);
           $request->requestTagMedia();
           $block['subject'] = t('Instagram Block - Tag Block');
@@ -239,9 +257,9 @@ function instagram_block_block_view($delta = '') {
     }
   }
 
-  $block['content'] = theme('instagram_block', array(
+  $block['content']['#markup'] = theme('instagram_block', array(
     'content' => $content,
-    'response' => $response
+    'response' => isset($response) ? $response : NULL,
   ));
 
   return $block;
@@ -286,4 +304,20 @@ function instagram_block_get_configuration_reminder() {
   return array(
     '#markup' => t('Please don\'t forget to !configure this block.', array('!configure' => l(t('configure'),'admin/config/services/instagram_block')))
   );
+}
+
+/**
+ * Preprocess variables for instagram-block-image.tpl.php
+ *
+ * Provides a default caption to be used as the alt text for an img tag.
+ *
+ * @see instagram-block-image.tpl.php
+ */
+function template_preprocess_instagram_block_image(&$variables) {
+  if (!empty($variables['post']->caption->text)) {
+    $variables['caption'] = $variables['post']->caption->text;
+  }
+  else {
+    $variables['caption'] = t('Instagram image, no caption provided by author.');
+  }
 }

@@ -31,7 +31,7 @@
       <div class="item<?php ($id == '0') ? print ' active' : print ''; ?>">
         <?php if(!empty($carousel_slide['carousel_image'])) : ?>
           <?php $img_url = file_create_url(file_load($carousel_slide['carousel_image'])->uri); ?>
-          <img src="<?php print $img_url ?>" alt="<?php print $carousel_slide['image_alt_text'];?>"/>
+          <img src="<?php print $img_url ?>" alt="<?php print check_plain($carousel_slide['image_alt_text']);?>"/>
         <?php endif; ?>
 
         <?php if(!empty($carousel_slide['carousel_video'])) : ?>
@@ -46,7 +46,7 @@
 
         <?php if (strip_tags($carousel_slide['carousel_caption']) != ''): ?>
           <div class="carousel-caption">
-            <?php print $carousel_slide['carousel_caption']; ?>
+            <?php print check_markup($carousel_slide['carousel_caption'], $carousel_slide['format']); ?>
           </div>
         <?php endif; ?>
 

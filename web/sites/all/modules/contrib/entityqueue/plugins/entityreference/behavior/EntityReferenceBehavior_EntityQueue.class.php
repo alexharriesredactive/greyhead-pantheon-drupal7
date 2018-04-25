@@ -16,8 +16,9 @@ class EntityReferenceBehavior_EntityQueue extends EntityReference_BehaviorHandle
       $max_size = $queue->settings['max_size'];
       $act_as_queue = isset($queue->settings['act_as_queue']) ? $queue->settings['act_as_queue'] : 0;
 
-      $empty_target_id = create_function('$value', 'return (!empty($value["target_id"])) ? TRUE : FALSE;');
-      $eq_items = array_filter($items, $empty_target_id);
+      $eq_items = array_filter($items, function ($value) {
+          return (!empty($value["target_id"])) ? TRUE : FALSE;
+      });
 
       if (count($eq_items) < $min_size && $entity->op != t('Add item')) {
         $errors[$field['field_name']][$langcode][0][] = array(
@@ -44,15 +45,28 @@ class EntityReferenceBehavior_EntityQueue extends EntityReference_BehaviorHandle
       $max_size = $queue->settings['max_size'];
       $act_as_queue = isset($queue->settings['act_as_queue']) ? $queue->settings['act_as_queue'] : 0;
 
-      if ($act_as_queue) {
-        $empty_target_id = create_function('$value', 'return (!empty($value["target_id"])) ? TRUE : FALSE;');
-        $eq_items = array_filter($items, $empty_target_id);
+      // Not all widgets can add to top, so we check if that option is set,
+      // and default "bottom" as is normal for entity reference widgets.
+      $add_position = isset($instance['widget']['settings']['add_position']) && $instance['widget']['settings']['add_position'] === 'top' ? 'top' : 'bottom';
 
+      if ($act_as_queue) {
+        $eq_items = array_filter($items, function ($value) {
+          return (!empty($value["target_id"])) ? TRUE : FALSE;
+        });
+
+        // Remove items exceeding the limit.
         if (count($eq_items) > $max_size && $max_size > 0) {
-          // Keep up to $max_size items
-          $items = array_slice($eq_items, -$max_size);
+          // Remove from the end if items are added to the top.
+          if ($add_position === 'top') {
+            $items = array_slice($eq_items, 0, $max_size);
+          }
+          // Or remove from the beginning if items are added to the bottom.
+          else {
+            $items = array_slice($eq_items, -$max_size);
+          }
         }
       }
     }
   }
+
 }
