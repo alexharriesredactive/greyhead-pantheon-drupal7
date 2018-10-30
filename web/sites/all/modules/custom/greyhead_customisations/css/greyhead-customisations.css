@@ -18,3 +18,8 @@ img {
   max-width: 100%;
   height: auto;
 }
+
+/* Don't let the Media module show links to media folders. */
+.field.field-name-field-folder {
+  display: none;
+}

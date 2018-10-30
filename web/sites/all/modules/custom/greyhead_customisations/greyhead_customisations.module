@@ -241,23 +241,25 @@ function greyhead_customisations_form_alter(&$form, $form_state, $form_id) {
           $form['menu']['link']['parent']['#value'] = $option;
 
           // Disable the menu parent select.
-//          $form['menu']['link']['parent']['#disabled'] = TRUE;
+          //          $form['menu']['link']['parent']['#disabled'] = TRUE;
 
           // Set the menu link title to required.
           $form['menu']['link']['link_title']['#required'] = TRUE;
 
           // Also make sure that the menu link checkbox is checked and disabled,
           // and add some help text to explain.
-          $form['menu']['enabled']['#default_value']
-            = $form['menu']['enabled']['#value']
-            = $form['menu']['enabled']['#disabled'] = TRUE;
+          $form['menu']['enabled']['#default_value'] = $form['menu']['enabled']['#value'] = TRUE;
+          $form['menu']['enabled']['#access'] = FALSE;
           $form['menu']['enabled']['#title'] = t('This type of page must always have a menu link');
         }
       }
     }
 
-    // Add a submit handler so we can debug node forms.
-    //$form['#submit'][] = 'greyhead_customisations_node_form_submit';
+    // Require new revisions on all node edits.
+    if (!empty($form['revision_information'])) {
+      $form['revision_information']['revision']['#value'] = TRUE;
+      $form['revision_information']['revision']['#access'] = FALSE;
+    }
   }
 
   // Always encrypt all submitted form data.
@@ -840,5 +842,29 @@ function greyhead_customisations_field_widget_form_alter(&$element, &$form_state
         $element['value']['#default_value'] = t('No alternative text provided');
       }
     }
+  }
+}
+
+/**
+ * Implements hook_mail_alter().
+ */
+function greyhead_customisations_mail_alter(&$email) {
+  // If we know the environment type, and it's not a production environment,
+  // don't allow e-mails to be sent.
+  if (module_exists('greyhead_environment_warning') && !greyhead_environment_warning_is_production()) {
+    $message = 'Greyhead Customisations prevented an e-mail with the subject "@subject" to @to being sent, because this is not a production environment (this environment is: @environment).';
+
+    $variables = [
+      '@subject' => $email['subject'],
+      '@to' => $email['to'],
+      '@environment' => CURRENT_ENVIRONMENT,
+      '!email' => print_r($email, TRUE),
+    ];
+
+    drupal_set_message(t($message . ' You can find this e-mail in the Watchdog log.', $variables), 'warning');
+
+    watchdog('greyhead_customisations', $message . ' The e-mail was: <pre>!email</pre>', $variables, WATCHDOG_DEBUG);
+
+    $email['to'] = '';
   }
 }

@@ -120,3 +120,29 @@ var Drupal = Drupal || {};
     });
   };
 })(jQuery, Drupal);
+
+/**
+ * Replaces an image in a Paragraph with a Yoochoob video.
+ *
+ * @param containerSelectorClass
+ * @param youtubeVideoId
+ */
+function theBabyShowReplaceImageWithYouchoobVideo(containerSelectorClass, youtubeVideoId) {
+  var $ = jQuery;
+
+  console.log('theBabyShowReplaceImageWithYouchoobVideo');
+  console.log(containerSelectorClass, 'containerSelectorClass');
+  console.log(youtubeVideoId, 'youtubeVideoId');
+  $('.' + containerSelectorClass + ' picture').replaceWith('<iframe id="' + containerSelectorClass + '-iframe" width="393" height="193" src="https://www.youtube-nocookie.com/embed/' + youtubeVideoId + '?rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>');
+  var iframeWidth = parseInt($('.' + containerSelectorClass + ' .field-name-field-homepage-leader-image .field-item').width(), 10);
+  console.log(iframeWidth, 'paragraphsItemIframeWidth');
+  var iframeHeight = (iframeWidth / 4) * 2;
+  $('.' + containerSelectorClass + ' iframe').height(iframeHeight);
+  console.log(iframeHeight, 'paragraphsItemIframeHeight');
+
+  // Set the iFrame to be the width of the container.
+  $('.' + containerSelectorClass + ' .field-name-field-homepage-leader-image .field-item iframe').attr('width', iframeWidth).attr('height', iframeHeight);
+
+  // Center the text.
+  $('.' + containerSelectorClass + ' .field-name-field-homepage-leader-image .field-item').css('text-align', 'center');
+}
