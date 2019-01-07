@@ -1,0 +1,8 @@
+name = Clarion Exhibitor Profile Matcher
+description = Allows administrators to assign exhibitor user profiles as owners of their profile nodes in batches by uploading a CSV file of e-mail addresses and exhibitor names.
+package = Clarion Events
+core = 7.x
+version = 7.x-1.0-20171005
+
+;files[] =
+;dependencies[] =

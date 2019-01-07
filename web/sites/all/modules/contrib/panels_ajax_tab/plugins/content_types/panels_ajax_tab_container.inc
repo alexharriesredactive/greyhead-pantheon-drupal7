@@ -3,7 +3,6 @@
 /**
  * @file
  * Contains the content type plugin for a Ajax tabs container.
- *
  */
 
 $plugin = array(
@@ -16,7 +15,7 @@ $plugin = array(
     new ctools_context_optional(t('Entity Context'), 'entity'),
   ),
   'render callback'  => 'panels_ajax_tab_container_render',
-  'edit form'        => 'panels_ajax_tab_container_edit_form'
+  'edit form'        => 'panels_ajax_tab_container_edit_form',
 );
 
 /**
@@ -26,6 +25,9 @@ function panels_ajax_tab_container_content_type_admin_title($subtype, $conf) {
   return "Ajax Tab Container - " . $conf['container_id'];
 }
 
+/**
+ * Rendering function for the 'panels_ajax_tab_container' content type.
+ */
 function panels_ajax_tab_container_render($subtype, $conf, $panel_args, &$contexts) {
   ctools_include('context');
   ctools_include('plugins', 'panels');
@@ -33,25 +35,26 @@ function panels_ajax_tab_container_render($subtype, $conf, $panel_args, &$contex
   $block->title = '';
   $block->content = '';
 
-  // Add required JavaScript and CSS
+  // Add required JavaScript and CSS.
   $path = drupal_get_path('module', 'panels_ajax_tab');
   drupal_add_js(array('panel_ajax_tab' => array('path' => $path)), 'setting');
   drupal_add_js($path . '/js/panels_ajax_tab.js');
 
-  // Generate the context string
+  // Generate the context string.
   if (!$contexts[0]->data) {
     $context_string = 'none';
   }
   else {
     $entity_type = $contexts[0]->type[2];
-    list($entity_id) = entity_extract_ids($entity_type, $contexts[0]->data);
+    $entity_ids = entity_extract_ids($entity_type, $contexts[0]->data);
+    $entity_id = array_shift($entity_ids);
     $context_string = $entity_type . ':' . $entity_id;
   }
 
-  // Get the tab-container-id
+  // Get the tab-container-id.
   $tab_container_id = $conf['container_id'];
 
-  // Find the panel_tabs config associated with this container
+  // Find the panel_tabs config associated with this container.
   $config_cache = cache_get('panels_ajax_tab_config_cache');
   if (!empty($config_cache)) {
     $configs = $config_cache->data;
@@ -66,8 +69,16 @@ function panels_ajax_tab_container_render($subtype, $conf, $panel_args, &$contex
     }
   }
 
+  // Get the visibility rule, if available.
+  $visibility_settings = _panels_ajax_tab_get_container_visibility_settings($tab_container_id);
+  foreach ($tab_config['mini_panels'] as $panel_name => $mini_panel) {
+    if (!panels_ajax_tab_ctools_access($panel_name, $visibility_settings, $contexts)) {
+      unset($tab_config['mini_panels'][$panel_name]);
+    }
+  }
+
   $loading_img = array(
-    'path' => drupal_get_path('module', 'panels_ajax_tab') . '/images/loading.gif', 
+    'path' => drupal_get_path('module', 'panels_ajax_tab') . '/images/loading.gif',
     'alt' => t('Loading'),
     'title' => t('Loading'),
     'attributes' => array('class' => 'loading'),
@@ -89,12 +100,19 @@ function panels_ajax_tab_container_render($subtype, $conf, $panel_args, &$contex
     $content .= '<div class="panels-ajax-tab-wrap-' . $preloaded . '">' . panels_render_display($mini->display) . '</div>';
   }
 
-  // Render the container
-  $block->content .= theme('panels_ajax_tab_container', array('tab_container_id' => $tab_container_id, 'content' => $content, 'preloaded' => $preloaded)); 
+  // Render the container.
+  $block->content .= theme('panels_ajax_tab_container', array(
+    'tab_container_id' => $tab_container_id,
+    'content' => $content,
+    'preloaded' => $preloaded,
+  ));
 
   return $block;
 }
 
+/**
+ * Plugin configuration form.
+ */
 function panels_ajax_tab_container_edit_form($form, &$form_state) {
   $conf = $form_state['conf'];
 
@@ -114,12 +132,15 @@ function panels_ajax_tab_container_edit_form($form, &$form_state) {
       'invisible' => array(
         ':input[name="display_tabs"]' => array('checked' => TRUE),
       ),
-    )
+    ),
   );
 
   return $form;
 }
 
+/**
+ * The submit form handler stores the data in $conf.
+ */
 function panels_ajax_tab_container_edit_form_submit(&$form, &$form_state) {
   $form_state['conf']['container_id'] = $form_state['values']['container_id'];
 }

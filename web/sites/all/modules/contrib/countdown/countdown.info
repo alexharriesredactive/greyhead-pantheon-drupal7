@@ -1,0 +1,6 @@
+name = Countdown
+description = Blocks for countdown display.
+package = Clarion Events Development
+core = 7.x
+version = VERSION
+files[] = countdown.module

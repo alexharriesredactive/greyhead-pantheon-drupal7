@@ -1,9 +1,8 @@
 <?php
 
-
 /**
  * @file
- * Admin settings
+ * Admin settings.
  */
 
 /**
@@ -18,6 +17,7 @@ function search_api_attachments_settings_form($form, &$form_state) {
       'python_pdf2txt' => t('Pdf2txt (local python application)'),
       'solr' => t('Solr (remote server)'),
       'tika' => t('Tika (local java application)'),
+      'tika_server' => t('Tika (server)'),
     ),
     '#description' => t('Choose extraction method, remote or local (extraction will be faster if run locally using tika).'),
     '#default_value' => variable_get('search_api_attachments_extract_using', 'tika'),
@@ -37,8 +37,26 @@ function search_api_attachments_settings_form($form, &$form_state) {
   $form['search_api_attachments_tika_settings']['search_api_attachments_tika_jar'] = array(
     '#type' => 'textfield',
     '#title' => t('Tika jar file:'),
-    '#default_value' => variable_get('search_api_attachments_tika_jar', 'tika-app-1.4.jar'),
-    '#description' => t('The name of the tika CLI application jar file, e.g. tika-app-1.4.jar.'),
+    '#default_value' => variable_get('search_api_attachments_tika_jar', 'tika-app-1.6.jar'),
+    '#description' => t('The name of the tika CLI application jar file, e.g. tika-app-1.6.jar.'),
+  );
+  $form['search_api_attachments_tika_server_settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Tika server settings'),
+    '#description' => t('Required if using the "Tika" server method (above).'),
+    '#collapsible' => TRUE,
+  );
+  $form['search_api_attachments_tika_server_settings']['search_api_attachments_tika_server_host'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Host:'),
+    '#default_value' => variable_get('search_api_attachments_tika_server_host', 'localhost'),
+    '#description' => t('The current host name, E.g. localhost'),
+  );
+  $form['search_api_attachments_tika_server_settings']['search_api_attachments_tika_server_port'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Port:'),
+    '#default_value' => variable_get('search_api_attachments_tika_server_port', 9998),
+    '#description' => t('The port tika server is running on'),
   );
   $form['search_api_attachments_python_pdf2txt_settings'] = array(
     '#type' => 'fieldset',
@@ -140,5 +158,20 @@ function search_api_attachments_settings_form_validate($form, &$form_state) {
         form_set_error('search_api_attachments_python_pdf2txt_script', t('Pdf2txt Python script file is not executable.'));
       }
     }
+  }
+  elseif ($form_state['values']['search_api_attachments_extract_using'] == 'tika_server') {
+    // Set server URL.
+    $server = 'http://' . $form_state['values']['search_api_attachments_tika_server_host'] . ':' . $form_state['values']['search_api_attachments_tika_server_port'] . '/tika';
+
+    $ch = curl_init($server);
+    // Check if server exists.
+    curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    if ($httpCode != 200) {
+      form_set_error('search_api_attachments_tika_server_host', t('No tika server was found. Please check if host and server are correct'));
+    }
+
+    curl_close($ch);
   }
 }

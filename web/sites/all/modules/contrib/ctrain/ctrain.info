@@ -1,0 +1,5 @@
+name = Clarion Training Customisations
+description = Adds various customisation for the Clarion Training Use case
+core = 7.x
+package = Clarion Training
+files[] = ctrain.module

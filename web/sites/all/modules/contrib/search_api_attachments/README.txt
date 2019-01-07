@@ -1,17 +1,21 @@
+INTRODUCTION
+------------
+
 Search API Attachments
 
-This module will extract the content out of attached files using the Tika
-library or the build in Solr extractor and index it.
-Search API attachments will index many file formats, including PDF's, MS Office,
-MP3 (ID3 tags), JPEG Metadata, ...
+This module is an add-on to the Search API which allows the indexing and
+searching of attachments.
 
-The module was tested with Apache Solr, however it should work on all Search API
-search servers.
-Database Search gives errors on saving but should work
-(Core Issue: http://drupal.org/node/1007830)
-
-More information:
-http://tika.apache.org/download.html
+The extraction can be done using :
+Apache Tika Library
+or
+The Solr built-in extractor
+or
+Acquia Search
+or
+pdftotext for pdfs
+or
+python pdf2text for pdfs
 
 REQUIREMENTS
 ------------
@@ -35,16 +39,14 @@ heading below.
 
 EXTRACTION CONFIGURATION (Tika)
 -------------------------------
-On Ubuntu 10.10
 
 Install java
-> sudo apt-get install openjdk-6-jdk
 
 Download Apache Tika library: http://tika.apache.org/download.html
-> wget http://mir2.ovh.net/ftp.apache.org/dist/tika/tika-app-1.4.jar
+Downloaded file is something like tika-app-y.x.jar
 
-Enter the full path on your server where you downloaded the jar
-e.g. /var/apache-tika/ and the name of the jar file e.g. tika-app-1.4.jar
+in admin/config/search/search_api/attachments, Enter the parent directory
+and the file name of the .jar file.
 
 - Hidden settings
 
@@ -54,51 +56,40 @@ search_api_attachments_java:
 
 EXTRACTION CONFIGURATION (Solr)
 -------------------------------
-This requires 1.0-RC5 or newer of the 'Search API Solr' module (namely for issue
-#1986284) and the Solr config files that come with it.
 
-If you're just using the 'example' application with the built-in Jetty server,
-you can skip straight to editing your solrconfig.xml file. Libraries should
-automatically be loaded.
+This requires Solr search (search_api_solr) module and the Solr config files
+that come with it.
 
-Before continuing, download and extract the Solr package for your particular
-release, if you don't have it already, e.g.
-> wget http://apache.mirror.serversaustralia.com.au/lucene/solr/3.6.2/apache-solr-3.6.2.tgz
-> tar xvzf apache-solr-3.6.2.tgz
-
-In the below instructions, replace '$SOLR_HOME' with your Solr home directory.
-
-From the Solr package, copy the 'dist/' and 'lib/' directories into your solr
-home directory, e.g.:
-> cp -R apache-solr-3.6.2/dist $SOLR_HOME/
-> cp -R apache-solr-3.6.2/contrib/extraction/lib $SOLR_HOME/
-
-Then edit the 'solrconfig.xml' file:
-> nano $SOLR_HOME/conf/solrconfig.xml
-
-And add the following line:
-<lib dir="./dist/" regex="apache-solr-cell-\d.*\.jar" />
-
-Then restart Tomcat/Jetty.
+Please follow the Solr search module instructions for configuring asearch api
+solr server.
 
 EXTRACTION CONFIGURATION (Pdftotext)
--------------------------------
+------------------------------------
+
 Pdftotext is a command line utility tool included by default on many linux
 distributions. See the wikipedia page for more info:
 https://en.wikipedia.org/wiki/Pdftotext
 
 EXTRACTION CONFIGURATION (python Pdf2txt)
--------------------------------
-On Debian 8
+-----------------------------------------
 
 Install Pdf2txt (tested with package version 20110515+dfsg-1 and python 2.7.9)
 > sudo apt-get install python-pdfminer
 
 SUBMODULES
 -------------------------------
-search_api_attachments_entityreference: More details in contrib folder.
-search_api_attachments_field_collections: More details in contrib folder.
-search_api_attachments_commerce_product_reference: More details in contrib folder.
+For each of these, find more details in contrib folder.
+
+search_api_attachments_comment
+search_api_attachments_commerce_product_reference
+search_api_attachments_entityreference
+search_api_attachments_field_collections
+search_api_attachments_links
+search_api_attachments_multifield
+search_api_attachments_multiple_entities
+search_api_attachments_paragraphs
+search_api_attachments_references
+search_api_attachments_user_content
 
 CACHING
 -------
@@ -106,7 +97,7 @@ Extracting files content can take a long time and it may not be needed to do it
 again each time a node gets reindexed.
 search_api_attachments have a cache bin where we store all the extracted files
 contents: this is the cache_search_api_attachments table.
-cache its are in the form of: 'cached_extraction_[fid]' where [fid] is the file
+cache keys are in the form of: 'cached_extraction_[fid]' where [fid] is the file
 id.
 When a file is deleted or updated, we drop its extracted stored cache.
 When the sidewide cache is deleted (drush cc all per example) we drop all the

@@ -5,6 +5,9 @@
  * Search API data alteration callback.
  */
 
+/**
+ * {@inheritdoc}
+ */
 class SearchApiAttachmentsMultifieldAlterSettings extends SearchApiAttachmentsAlterSettings {
 
   /**
@@ -15,7 +18,7 @@ class SearchApiAttachmentsMultifieldAlterSettings extends SearchApiAttachmentsAl
     $multifields_instances = field_info_instances('multifield');
     $multifields = array_keys($multifields_instances);
     if (!empty($multifields_instances)) {
-      foreach ($items as $id => &$item) {
+      foreach ($items as &$item) {
         // Case of multifield fields.
         foreach ($multifields as $multifield) {
           if (isset($item->{$multifield})) {
@@ -38,10 +41,11 @@ class SearchApiAttachmentsMultifieldAlterSettings extends SearchApiAttachmentsAl
                 foreach ($multifield_items as $multifield_item) {
                   if (isset($multifield_item[$file_field]) && !empty($multifield_item[$file_field])) {
                     $files = array();
-                    // Get the entity wrapper that have multifield with file fields.
+                    // Get the entity wrapper that have multifield with
+                    // file fields.
                     $item_wrapper = entity_metadata_wrapper($this->index->getEntityType(), $item);
                     if (is_array($item_wrapper->{$multifield}->value())) {
-                      foreach ($item_wrapper->{$multifield} as $delta => $multifield_wrapper) {
+                      foreach ($item_wrapper->{$multifield} as $multifield_wrapper) {
                         $files[] = $multifield_wrapper->{$file_field}->value();
                       }
                     }
@@ -112,4 +116,5 @@ class SearchApiAttachmentsMultifieldAlterSettings extends SearchApiAttachmentsAl
     }
     return $ret;
   }
+
 }

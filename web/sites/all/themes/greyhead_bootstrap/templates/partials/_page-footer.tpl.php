@@ -18,7 +18,6 @@ $secondary_navigation = render($page['secondary_navigation']);
 <div class="footer-wrapper">
   <footer class="footer">
 
-    <?php /*
     <!-- Primary navigation, if available. -->
     <nav role="navigation">
       <?php if (isset($primary_nav_rendered) && !empty($primary_nav_rendered)): ?>
@@ -57,7 +56,6 @@ $secondary_navigation = render($page['secondary_navigation']);
         </div>
       </div>
     <?php endif; ?>
-    */ ?>
 
     <div class="row">
       <div class="container">

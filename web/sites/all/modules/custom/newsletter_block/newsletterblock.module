@@ -1,0 +1,145 @@
+<?php
+/**
+* @name newsletterblock.module
+* @author Giovanni Capuano <giovanni.capuano@clarionevents.com>
+* @version 1.0
+*  
+* @file
+* Implements various blocks to improve pending content workflow.
+*/
+
+/**
+* Implements hook_block_info().
+*/
+function newsletterblock_block_info() {
+	$blocks['newsletterblock_block'] = array(
+		'info' => t('Newsletter image Block'),
+		'status' => TRUE,
+		'region' => 'content',
+		'weight' => -13,
+		'visibility' => 1,
+		'class' => array(
+			'newsletterblock-block'
+      	), 
+	);
+	return $blocks;
+}
+
+
+/**
+* Implements hook_block_configure().
+*/
+function newsletterblock_block_configure($delta) {
+	$form = array();
+	switch($delta) {
+	case 'newsletterblock_block':
+		
+		$form['text_caption'] = array(
+          '#type' => 'textfield',
+          '#title' => t('Caption'),
+          '#size' => 60,
+          '#maxlength' => 255,
+          '#default_value' => variable_get('caption', ''),
+      );
+	  
+	  
+	  $form['text_link'] = array(
+          '#type' => 'textfield',
+          '#title' => t('Link URL'),
+          '#size' => 60,
+          '#maxlength' => 255,
+          '#default_value' => variable_get('link', ''),
+      );
+		
+        // File selection form element
+        $form['banner_file'] = array(
+            '#name' => 'block_image',
+            '#type' => 'managed_file',
+            '#title' => t('Choose an Image File (gif, png, jpg, jpeg)'),
+            '#default_value' => variable_get('block_image_fid', ''),
+            '#upload_location' => 'public://block_image/',
+            '#upload_validators' => array(
+                'file_validate_extensions' => array('gif png jpg jpeg'),
+            ),
+        );
+		
+		
+	  break;
+	}
+	return $form;
+}
+
+
+
+/**
+ * Implements hook_block_save().
+ */
+function newsletterblock_block_save($delta = '', $edit = array()) {
+  switch($delta) {
+    case 'newsletterblock_block' :
+
+		variable_set('caption', $edit['text_caption']);
+		variable_set('link', $edit['text_link']);
+		
+        // Saving the file, setting it to a permanent state, setting a FID variable
+        $file_large = file_load($edit['banner_file']);
+        $file_large->status = FILE_STATUS_PERMANENT;
+        file_save($file_large);
+        $block_large = block_load('newsletterblock', $delta);
+        file_usage_add($file_large, 'newsletterblock', 'block', $block_large->bid);
+        variable_set('block_image_fid', $file_large->fid);
+
+        break;
+  }
+  
+  return;
+}
+
+
+/**
+ * Implements hook_block_view().
+ */
+function newsletterblock_block_view($delta='') {
+  $block = array();
+  drupal_add_js();
+  
+  switch($delta) {
+    case 'newsletterblock_block' :
+      $block['content'] = displaynewsletterblock_block_view();
+      break;
+  }
+  
+  return $block;
+}
+
+/**
+ * Custom function to assemble renderable array for block content.
+ * Returns a renderable array with the block content.
+ * @return returns a renderable array of block content.
+ */
+function displaynewsletterblock_block_view() {
+  $block = array();
+  
+  $caption = variable_get('caption', '');
+  $link = variable_get('link', '');
+  
+  $image_file = file_load(variable_get('block_image_fid', ''));
+
+ 
+  // Block output in HTML with div wrapper
+  $block = array(
+    
+    'newsletter' => array(
+      '#type' => 'markup',
+      '#markup' =>  '<div class="newsletter-block">
+      					<a href="' . $link . '" class="block-link">
+      						<img src="/sites/babytotoddlerevent/files/block_image/' . $image_file->filename . '" />
+  							<div class="caption">' . $caption . '</div>
+						</a>
+					</div>',
+      '#suffix' => '',
+    )
+  );
+
+  return $block;
+}

@@ -1,5 +1,5 @@
 module.exports = function (grunt) {
-  //require('jit-grunt')(grunt);
+  require('jit-grunt')(grunt);
 
   grunt.initConfig({
     bless: {
@@ -52,9 +52,5 @@ module.exports = function (grunt) {
   });
 
   grunt.loadNpmTasks('grunt-bless');
-  grunt.loadNpmTasks('grunt-contrib-less');
-  grunt.loadNpmTasks('grunt-contrib-watch');
-
-  // grunt.registerTask('default', ['less', 'bless', 'watch']);
-  grunt.registerTask('default', ['less', 'watch']);
+  grunt.registerTask('default', ['less', 'bless', 'watch']);
 };

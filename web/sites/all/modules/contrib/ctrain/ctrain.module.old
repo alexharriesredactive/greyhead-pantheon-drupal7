@@ -1,0 +1,40 @@
+<?php
+
+/**
+* This module implements customisations specific to the Clarion Tarining use case.
+*/
+
+
+/**
+* hook_form_alter() to change the Add to Cart button to Book Course.
+*/
+
+function ctrain_form_alter(&$form, &$form_state, $form_id) {
+
+  if (strpos($form_id, 'commerce_cart_add_to_cart_form') !== FALSE) {
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Book Course'),
+    );
+	$form['submit']['#attributes']['class'][] = 'btn-success';
+  }
+
+}
+
+function ctrain_form_views_exposed_form_alter(&$form, &$form_state, $form_id) {
+
+if($form['#id'] == 'views-exposed-form-course-search-2-course-search-page'){
+//		Print '<pre>';
+//		Print_r($form);
+//		Print '</pre>';
+//$form ['#info']['filter-search_api_views_fulltext']= array(
+		//'#operator' => search_api
+		
+		//'#label' => t('Search Courses'),
+//		);
+ $form['submit']['#attributes']['class'][] = 'btn btn-success';
+ $form['search_api_views_fulltext']['#attributes']["placeholder"] = t('Search Courses');
+ //$form['search_api_views_fulltext']['#attributes']['class'][] = 'col-sm-12';
+	}
+}
+?>

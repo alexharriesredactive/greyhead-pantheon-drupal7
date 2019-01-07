@@ -1,0 +1,168 @@
+<?php
+/**
+ * @name node_navigator.module
+ * @author Giovanni Capuano <giovanni.capuano@clarionevents.com>
+ * @version 1.0
+ */
+
+/**
+ * Implements hook_field_info().
+ */
+function navigator_field_info() {
+  return array(
+    'navigator_navigate' => array(
+      'label' => t('Navigate'),
+      'description' => t('This field stores an navigator navigate and label in the database.'),
+      'default_widget' => 'navigator_vocabulary',
+      'default_formatter' => 'navigator_raw',
+      'settings' => array(
+        'allowed_values' => array(
+          array(
+            'vocabulary' => '',
+            'parent' => '0',
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_widget_info().
+ */
+function navigator_field_widget_info() {
+  return array(
+    'navigator_vocabulary' => array(
+      'label' => t('navigator Vocabulary'),
+      'field types' => array('navigator_navigate'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_widget_form().
+ */
+// function navigator_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+// 	
+// }
+
+/**
+ * Implements hook_field_widget_settings_form($field, $instance).
+ */
+function navigator_field_widget_settings_form($field, $instance) {
+		
+  $vocabularies = taxonomy_get_vocabularies();
+  $options = array();
+  foreach ($vocabularies as $vocabulary) {
+    $options[$vocabulary->machine_name] = $vocabulary->name;
+  }
+  $form['allowed_values'] = array(
+    '#tree' => TRUE,
+  );
+
+  foreach ($field['settings']['allowed_values'] as $delta => $tree) {
+    $form['allowed_values'][$delta]['vocabulary'] = array(
+      '#type' => 'select',
+      '#title' => t('Vocabulary'),
+      '#default_value' => $tree['vocabulary'],
+      '#options' => $options,
+      '#required' => TRUE,
+      '#description' => t('The vocabulary which supplies the options for this field.'),
+    );
+    $form['allowed_values'][$delta]['parent'] = array(
+      '#type' => 'value',
+      '#value' => $tree['parent'],
+    );
+  }
+  
+  $element = array(
+		'navigator_label_text' => array(
+			'#type' => 'textfield',
+			'#title' => t('Button text'),
+			'#description' => t('Text to provide for the Next node button'),
+			'#default_value' => isset($instance['widget']['settings']['navigator_label_text']) ? $instance['widget']['settings']['navigator_label_text'] : '',
+		),
+		
+		$form,
+	);
+	return $element;	
+}
+
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function navigator_field_formatter_info() {
+  return array(
+    'navigator_button' => array(
+      'label' => t('Button view for next node'),
+      'field types' => array('navigator_navigate'),
+    ),
+  );
+}
+
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function navigator_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, &$items, $display) {
+	
+		$element = array();
+		
+		$next_url = get_next_url($instance);
+		
+	  switch ($display['type']) {
+	  	case 'navigator_button':
+		        $element[0] = array(
+		          '#type' => 'markup',
+		          '#markup' => t('<a class="btn btn-teal" href="'. $GLOBALS['base_url'] .'/'. $next_url .'" role="button">' . check_plain($instance['widget']['settings']['navigator_label_text']) .'&nbsp;<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span></a>'),
+		        );
+		    $items = $element;
+			break;
+	  }
+	 
+  return $element;
+}
+
+function get_next_url($instance){
+	$url;
+	
+	$has_same_taxonomy = 0;
+	$node = node_load(arg(1));
+	$n_node = $node;
+	
+	do{
+		$next_nid = prev_next_nid($n_node->nid, 'next');
+		if ($next_nid) {
+			
+			$n_node = node_load($next_nid);
+		
+			if ($n_node !== NULL) {
+				$results = db_query('SELECT tid FROM {taxonomy_index} WHERE nid = :nid', array(':nid' => $n_node->nid));
+				
+				foreach ($results as $result) {
+				  $vocabulary = taxonomy_term_load($result->tid);
+					
+				  //Check if the terms come from the same vocabulary
+				  if($vocabulary->vocabulary_machine_name == $instance['widget']['settings'][0]['allowed_values'][0]['vocabulary']){
+				  	$node_terms = db_query('SELECT tid FROM {taxonomy_index} WHERE nid = :nid', array(':nid' => $node->nid));
+				  	foreach ($node_terms as $term) {
+				  		$node_term = taxonomy_term_load($term->tid);
+						
+						//Check if the term is the same one
+						if($node_term->name == $vocabulary->name){
+							$has_same_taxonomy = 1;
+						}
+				  	}
+				  }
+				}
+			}
+		}else{
+			$n_node = $node;
+			$has_same_taxonomy = 1;
+		}
+	}while($has_same_taxonomy == 0);
+	
+	$url = drupal_get_path_alias('node/' . $n_node->nid);
+	return $url;
+}

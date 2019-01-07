@@ -53,7 +53,7 @@ class SearchApiAttachmentsViewsHandlerAttachmentsFilter extends views_handler_fi
   /**
    * {@inheritdoc}
    */
-  function exposed_form(&$form, &$form_state) {
+  public function exposed_form(&$form, &$form_state) {
     if (empty($this->options['exposed'])) {
       return;
     }

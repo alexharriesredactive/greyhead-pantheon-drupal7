@@ -42,23 +42,38 @@ function common_base_modules_form_alter(&$form, &$form_state, $form_id) {
     $form['maillog_devel']['#value'] = $form['maillog_devel']['#default_value'];
   }
 
-  // In local environments, disable CAPTCHA.
-  if (defined('CURRENT_ENVIRONMENT') && defined('ENVIRONMENT_TYPE_LOCAL') && (CURRENT_ENVIRONMENT == ENVIRONMENT_TYPE_LOCAL)) {
-    _common_base_modules_unset_captcha($form);
+  // Do we need to disable CAPTCHA?
+  common_base_modules_unset_captcha($form);
+}
+
+/**
+ * If the current environment is excluded from CAPTCHA, remove CAPTCHA fields.
+ *
+ * @param array $form
+ */
+function common_base_modules_unset_captcha(&$form) {
+  if (defined('CURRENT_ENVIRONMENT')) {
+    $greyhead_disable_captcha_for_environments = variable_get('greyhead_disable_captcha_for_environments', [ENVIRONMENT_TYPE_LOCAL]);
+
+    if (in_array(CURRENT_ENVIRONMENT, $greyhead_disable_captcha_for_environments)) {
+      // Yes; this environment is specifically excluded from having CAPTCHA
+      // challenges.
+      _common_base_modules_unset_captcha($form);
+    }
   }
 }
 
 /**
  * Recurse through a form's elements, removing any CAPTCHA fields.
  *
- * @param $form
+ * @param array $form
  */
 function _common_base_modules_unset_captcha(&$form) {
   foreach (element_children($form) as $child_element) {
     if (!empty($form[$child_element]['#type']) && ($form[$child_element]['#type'] == 'captcha')) {
       // It's a CAPTCHA. Replace it with some help text.
       $form[$child_element] = [
-        '#markup' => '<strong>' . t('The CAPTCHA challenge has been disabled because this is a local development environment.') . '</strong>',
+        '#markup' => '<strong>' . t('The CAPTCHA challenge has been disabled by the Common Base Modules Feature.') . '</strong>',
       ];
     }
     else {

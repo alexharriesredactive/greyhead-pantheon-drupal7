@@ -125,9 +125,6 @@ credentials should have the following User Policy set:
     "Statement": [
         {
             "Effect": "Allow",
-            "Principal": {
-              "AWS": "~"
-            },
             "Action": [
                 "s3:ListAllMyBuckets"
             ],
@@ -135,44 +132,12 @@ credentials should have the following User Policy set:
         },
         {
             "Effect": "Allow",
-            "Principal": {
-              "AWS": "~"
-            },
             "Action": [
                 "s3:*"
             ],
             "Resource": [
-                "arn:aws:s3:::clarion-~",
-                "arn:aws:s3:::clarion-~/*"
-            ]
-        }
-    ]
-}
-
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-              "AWS": "arn:aws:iam::933567700151:user/clarion-antiques-for-everyone"
-            },
-            "Action": [
-                "s3:ListAllMyBuckets"
-            ],
-            "Resource": "arn:aws:s3:::*"
-        },
-        {
-            "Effect": "Allow",
-            "Principal": {
-              "AWS": "arn:aws:iam::933567700151:user/clarion-antiques-for-everyone"
-            },
-            "Action": [
-                "s3:*"
-            ],
-            "Resource": [
-                "arn:aws:s3:::clarion-antiques-for-everyone",
-                "arn:aws:s3:::clarion-antiques-for-everyone/*"
+                "arn:aws:s3:::<bucket_name>",
+                "arn:aws:s3:::<bucket_name>/*"
             ]
         }
     ]
@@ -266,8 +231,10 @@ $conf['s3fs_bucket'] = 'YOUR BUCKET NAME';
 $conf['s3fs_region'] = 'YOUR REGION';
 $conf['s3fs_use_cname'] = TRUE or FALSE;
 $conf['s3fs_domain'] = 'cdn.example.com';
+$conf['s3fs_domain_s3_private'] = TRUE or FALSE;
 $conf['s3fs_use_customhost'] = TRUE or FALSE;
 $conf['s3fs_hostname'] = 'host.example.com';
+$conf['s3fs_use_versioning'] = TRUE OR FALSE;
 $conf['s3fs_cache_control_header'] = 'public, max-age=300';
 $conf['s3fs_encryption'] = 'aws:kms';
 $conf['s3fs_use_https'] = TRUE or FALSE;
@@ -281,6 +248,7 @@ $conf['s3fs_private_folder'] = 's3fs-private';
 $conf['s3fs_presigned_urls'] = "300|presigned-files/*\n60|other-presigned/*";
 $conf['s3fs_saveas'] = "videos/*\nfull-size-images/*";
 $conf['s3fs_torrents'] = "yarrr/*";
+
 
 // AWS Credentials use a different prefix than the rest of s3fs's settings
 $conf['awssdk2_access_key'] = 'YOUR ACCESS KEY';

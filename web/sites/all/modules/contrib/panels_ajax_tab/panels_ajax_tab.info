@@ -1,16 +1,14 @@
 name = Panels AJAX tabs
 description = Allows the display of multiple mini-panes inside a panel as AJAX tabs
 core = 7.x
+configure = admin/config/user-interface/panels-ajax-tab
 dependencies[] = panels
 dependencies[] = panels_mini
 dependencies[] = jquery_update
 package = Panels
-files[] = panels_ajax_tab.module
 
-
-; Information added by Drupal.org packaging script on 2016-01-17
-version = "7.x-1.2"
+; Information added by Drupal.org packaging script on 2018-12-04
+version = "7.x-1.3"
 core = "7.x"
 project = "panels_ajax_tab"
-datestamp = "1453060758"
-
+datestamp = "1543901284"

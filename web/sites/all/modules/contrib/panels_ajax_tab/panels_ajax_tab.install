@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * @file
+ * Contains update functions for panels_ajax_tab.
+ */
+
+/**
+ * Updates the tab configuration.
+ */
+function panels_ajax_tab_update_7000() {
+  $configs = panels_ajax_tab_config_cache();
+}

@@ -1,9 +1,8 @@
 <?php
 
-
 /**
  * @file
- * Module install
+ * Module install file.
  */
 
 /**
@@ -36,7 +35,7 @@ function search_api_attachments_requirements($phase) {
 
     // Test if php-iconv is enabled on the server.
     $requirements['search_api_attachments_iconv'] = array(
-      'title'       => $t('iconv php function'),
+      'title' => $t('iconv php function'),
       'description' => $t('Test if iconv php function is known. You will have an error when trying to index .txt files with search API attachments if this function is not present.'),
     );
 
@@ -93,7 +92,7 @@ function search_api_attachments_update_7102() {
   $indexes = search_api_index_load_multiple($search_api_indexes);
 
   if (!empty($indexes)) {
-    foreach ($indexes as $key => $index) {
+    foreach ($indexes as $index) {
       if (isset($index->options['data_alter_callbacks']['search_api_attachments_alter_settings']) && isset($index->options['data_alter_callbacks']['search_api_attachments_alter_settings']['settings'])) {
         $index->options['data_alter_callbacks']['search_api_attachments_alter_settings']['settings']['excluded_private'] = 0;
 

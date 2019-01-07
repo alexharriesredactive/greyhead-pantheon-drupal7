@@ -5,6 +5,9 @@
  * Search API data alteration callback.
  */
 
+/**
+ * {@inheritdoc}
+ */
 class SearchApiAttachmentsReferencesAlterSettings extends SearchApiAttachmentsAlterSettings {
 
   /**
@@ -17,13 +20,17 @@ class SearchApiAttachmentsReferencesAlterSettings extends SearchApiAttachmentsAl
     // Get the file fields.
     $file_fields = $this->getFileFields();
 
-    foreach ($items as $id => &$item) {
-      $item_wrapper = entity_metadata_wrapper($this->index->item_type, $item);
+    foreach ($items as &$item) {
+      $item_wrapper = entity_metadata_wrapper($this->index->getEntityType(), $item);
 
       // Case of entity reference fields.
       foreach ($reference_fields as $reference_field) {
         if (isset($item->{$reference_field['field_name']})) {
           $referenced_entities = $item_wrapper->{$reference_field['field_name']}->value();
+          // Manage case of field having no value and continue with next field.
+          if (empty($referenced_entities)) {
+            continue;
+          }
           // Manage case of single value fields by reproducing the structure of
           // multiple values fields.
           if (is_object($referenced_entities)) {
@@ -68,7 +75,7 @@ class SearchApiAttachmentsReferencesAlterSettings extends SearchApiAttachmentsAl
    */
   public function propertyInfo() {
     $ret = array();
-    if ($this->index->item_type == 'file') {
+    if ($this->index->getEntityType() == 'file') {
       $ret['attachments_content'] = array(
         'label' => 'File content',
         'description' => 'File content',
@@ -114,4 +121,5 @@ class SearchApiAttachmentsReferencesAlterSettings extends SearchApiAttachmentsAl
     }
     return $ret;
   }
+
 }

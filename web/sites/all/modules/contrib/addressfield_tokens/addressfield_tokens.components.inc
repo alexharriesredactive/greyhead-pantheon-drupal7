@@ -413,7 +413,7 @@ function _webform_csv_headers_addressfield($component, $export_options) {
   }
   else {
     $header[0] = array('');
-    $header[1] = array();
+    $header[1] = array('');
     $header[2] = array($component['name']);
   }
   return $header;

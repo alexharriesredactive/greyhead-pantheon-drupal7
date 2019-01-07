@@ -23,7 +23,7 @@
  * @return bool|null
  *   Return FALSE if the attachment should not be indexed.
  */
-function hook_search_api_attachments_indexable($file, $item, $field_name) {
+function hook_search_api_attachments_indexable(array $file, $item, $field_name) {
   // Don't index files on entities owned by our bulk upload bot accounts.
   if (in_array($item->uid, my_module_blocked_uids())) {
     return FALSE;

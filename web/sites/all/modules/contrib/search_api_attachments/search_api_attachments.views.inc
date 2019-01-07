@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * Adds views hooks.
+ */
+
+/**
  * Implements hook_views_data_alter().
  */
 function search_api_attachments_views_data_alter(&$data) {

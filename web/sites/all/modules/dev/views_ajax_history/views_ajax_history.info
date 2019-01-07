@@ -5,9 +5,8 @@ core = 7.x
 
 dependencies[] = libraries
 
-; Information added by Drupal.org packaging script on 2016-09-25
-version = "7.x-1.0+2-dev"
+; Information added by Drupal.org packaging script on 2018-10-08
+version = "7.x-1.1"
 core = "7.x"
 project = "views_ajax_history"
-datestamp = "1474799640"
-
+datestamp = "1539012484"
