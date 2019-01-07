@@ -210,6 +210,10 @@
 // Media queries breakpoints
 // --------------------------------------------------
 
+// Tiny screen - only used for a couple of things in the header.
+@screen-xxs:                 320px;
+@screen-xxs-min:             @screen-xxs;
+
 // Extra small screen / phone
 // Note: Deprecated @screen-xs and @screen-phone as of v3.0.1
 @screen-xs:                  480px;
@@ -239,6 +243,18 @@
 @screen-sm-max:              (@screen-md-min - 1);
 @screen-md-max:              (@screen-lg-min - 1);
 
+// Breakpoints
+// ------------------------- Source: http://blog.scur.pl/2012/06/variable-media-queries-less-css/
+@highdensity: ~"only screen and (-webkit-min-device-pixel-ratio: 1.5)",
+~"only screen and (min--moz-device-pixel-ratio: 1.5)",
+~"only screen and (-o-min-device-pixel-ratio: 3/2)",
+~"only screen and (min-device-pixel-ratio: 1.5)";
+@mobilexxsbreakpoint:   ~"only screen and (max-width: @{screen-xxs-min})";
+@mobilexsbreakpoint:    ~"only screen and (max-width: @{screen-xs-min})";
+@mobilebreakpoint:      ~"only screen and (max-width: @{screen-xs-max})";
+@tabletbreakpoint:      ~"only screen and (min-width: @{screen-sm}) and (max-width: @{screen-sm-max})";
+@desktopbreakpoint:     ~"only screen and (min-width: @{screen-md}) and (max-width: @{screen-md-max})";
+@desktopxlbreakpoint:   ~"only screen and (min-width: @{screen-lg})";
 
 // Grid system
 // --------------------------------------------------
