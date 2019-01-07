@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Reset all user accounts!
+ * Reset user passwords and optionally notify users.
  */
 
 /**
@@ -34,19 +34,22 @@ function mass_pwreset_menu() {
 }
 
 /**
- * _mass_pwreset_generate_password
- *   Modified version of Drupal's user_password() for generating passwords
- *   which will never be sent to anyone. The default length of the password has
- *   been changed to 12 characters to increse entropy. Includes two sets of
- *   password requirements (standard and admin).
- * @param  integer $length
+ * Generate user passwords.
+ *
+ * Modified version of Drupal's user_password() for generating passwords which
+ * will never be sent to anyone. The default length of the password has been
+ * changed to 12 characters to increse entropy. Includes two sets of password
+ * requirements (standard and admin).
+ *
+ * @param int $length
  *   Length to generate the password
- * @param  bool $admin
+ * @param bool $admin
  *   (optional) TRUE if password should be generated from more stringent
  *   password requirements. Defaults to FALSE. Mimimum password length shifts
  *   to 20 if TRUE, regardless of the password length passed into $length.
- * @return string $pass
- *         Generated password
+ *
+ * @return string
+ *   Generated password
  */
 function _mass_pwreset_generate_password($length = 8, $admin = FALSE) {
   // Set password requirements for standard or admin based on $admin value.
@@ -56,14 +59,16 @@ function _mass_pwreset_generate_password($length = 8, $admin = FALSE) {
       $length = 12;
     }
 
-    // This veriable contains the regex to enforce the following password requirements:
-    // First and last characters cannot be digits (0-9)
-    // Must contain two digit characters (0-9)
-    // Must contain one lower case character (a-z)
-    // Must contain one upper case character (A-Z)
-    // Must contain three special characters - ()`~!@#$%^&*-+=|\{}[]:;"'<>,.?/
-    // Minimum length is 12 characters
-    // Maximum length is 128 characters
+    // This veriable contains the regex to enforce the following password
+    // requirements:
+    // First and last characters cannot be digits (0-9).
+    // Must contain two digit characters (0-9).
+    // Must contain one lower case character (a-z).
+    // Must contain one upper case character (A-Z).
+    // Must contain three special characters
+    // ( ()`~!@#$%^&*-+=|\{}[]:;"'<>,.?/ ).
+    // Minimum length is 12 characters.
+    // Maximum length is 128 characters.
     $pass_requirements = '_^(?=.*\d.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[()`~!@#$%^\&*\-+=\|\\{}[\]:;"\'<>,.?/].*[()`~!@#$%^\&*\-+=\|\\{}[\]:;"\'<>,.?/].*[()`~!@#$%^\&*\-+=\|\\{}[\]:;"\'<>,.?/])[\D]{1}[\s0-9a-zA-Z()`~!@#$%^\&*\-+=\|\\{}[\]:;"\'<>,.?/]{10,126}[\D]{1}$_';
   }
   else {
@@ -72,14 +77,16 @@ function _mass_pwreset_generate_password($length = 8, $admin = FALSE) {
       $length = 8;
     }
 
-    // This veriable contains the regex to enforce the following password requirements:
-    // First and last characters cannot be digits (0-9)
-    // Must contain one digit character (0-9)
-    // Must contain one lower case character (a-z)
-    // Must contain one upper case character (A-Z)
-    // Must contain one special character - ()`~!@#$%^&*-+=|\{}[]:;"'<>,.?/
-    // Minimum length is 8 characters
-    // Maximum length is 128 characters
+    // This veriable contains the regex to enforce the following password
+    // requirements:
+    // First and last characters cannot be digits (0-9).
+    // Must contain one digit character (0-9).
+    // Must contain one lower case character (a-z).
+    // Must contain one upper case character (A-Z).
+    // Must contain one special character
+    // ( ()`~!@#$%^&*-+=|\{}[]:;"'<>,.?/ ).
+    // Minimum length is 8 characters.
+    // Maximum length is 128 characters.
     $pass_requirements = '_^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[()`~!@#$%^\&*\-+=\|\\{}[\]:;"\'<>,.?/])[\D]{1}[\s0-9a-zA-Z()`~!@#$%^\&*\-+=\|\\{}[\]:;"\'<>,.?/]{6,126}[\D]{1}$_';
   }
 
@@ -87,7 +94,7 @@ function _mass_pwreset_generate_password($length = 8, $admin = FALSE) {
   $allowable_characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHJKLMNOPQRSTUVWXYZ0123456789()`~!@#$%^&*-+=|\{}[]:;"\'<>,.?/';
 
   // Zero-based count of characters in the allowable list.
-  $len = strlen($allowable_characters) - 1;
+  $len = drupal_strlen($allowable_characters) - 1;
 
   // Declare the password as a blank string.
   $pass = '';
@@ -98,12 +105,61 @@ function _mass_pwreset_generate_password($length = 8, $admin = FALSE) {
     $pass = '';
     // Loop the number of times specified by $length.
     for ($i = 0; $i < $length; $i++) {
+      do {
+        // Find a secure random number within the range needed.
+        $index = ord(drupal_random_bytes(1));
+      } while ($index > $len);
 
-      // Each iteration, pick a random character from the allowable string and
-      // append it to the password:
-      $pass .= $allowable_characters[mt_rand(0, $len)];
+      // Each iteration, pick a random character from the
+      // allowable string and append it to the password:
+      $pass .= $allowable_characters[$index];
     }
+
   }
 
   return $pass;
 }
+
+/**
+ * Batch function: Multiple reset
+ */
+function mass_pwreset_multiple_reset($data) {
+	$batch = array(
+		'operations' => array(
+						array('mass_pwreset_batch_process', array($data)),
+		),
+		'finished' => 'mass_pwreset_batch_finished',
+		'title' => t('Multiple password reset'),
+		'init_message' => t('Multiple password reset in progress.'),
+		'progress_message' => t('Executed @current of @total.'),
+		'error_message' => t('The Multiple password reset have encountered an error'),
+		'file' => drupal_get_path('module', 'mass_pwreset') . '/mass_pwreset.batch.inc',
+	);
+
+	batch_set($batch);
+}
+
+/**
+ * Handler: retrieve uids from a list of roles
+ */
+function mass_pwreset_get_uids_by_role($roles = array()) {
+	$rid = DRUPAL_AUTHENTICATED_RID;
+	// If "authenticated user" role is present, select all users.
+	if (in_array($rid, $roles)) {
+		$query = db_select('users', 'u');
+		$query->fields('u', array('uid', 'uid'));
+		$query->condition('u.uid', '0', '<>');
+		$query->orderBy('u.uid');
+	}
+	else {
+		$query = db_select('users', 'u');
+		$query->innerJoin('users_roles', 'ur', 'u.uid = ur.uid');
+		$query->fields('u', array('uid', 'uid'));
+		$query->condition('ur.rid', $roles, 'IN');
+		$query->orderBy('u.uid');
+	}
+
+	$result = $query->execute()->fetchAllKeyed();
+	return $result;
+}
+

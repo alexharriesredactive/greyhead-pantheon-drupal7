@@ -1,0 +1,185 @@
+<?php
+/**
+* @name logoblock.module
+* @author Giovanni Capuano <giovanni.capuano@clarionevents.com>
+* @version 1.0
+*  
+* @file
+* Implements various blocks to improve pending content workflow.
+*/
+
+/**
+* Implements hook_block_info().
+*/
+function logoblock_block_info() {
+	$blocks['logoblock_block'] = array(
+		'info' => t('Logo Switch Block'),
+		'status' => TRUE,
+		'region' => 'content',
+		'weight' => -13,
+		'visibility' => 1,
+		'class' => array(
+			'logoblock-block'
+      	), 
+	);
+	return $blocks;
+}
+
+
+/**
+* Implements hook_block_configure().
+*/
+function logoblock_block_configure($delta) {
+	$form = array();
+	switch($delta) {
+	case 'logoblock_block':
+
+      $form['link_text_london'] = array(
+          '#type' => 'textfield',
+          '#title' => t('Link <strong style="color:red">Destinations London</strong>'),
+          '#size' => 20,
+          '#maxlength' => 255,
+          '#default_value' => variable_get('link_london', ''),
+      );
+
+      // File selection form element
+      $form['banner_logo_london'] = array(
+        '#name' => 'logo_image_london',
+        '#type' => 'managed_file',
+        '#title' => t('Destination London - Choose an Image File'),
+        '#description' => t('Select an Image for the <strong>London</strong> custom block.  Only *.gif, *.png, *.jpg, and *.jpeg images allowed.'),
+        '#default_value' => variable_get('logo_image_fid_london', ''),
+        '#upload_location' => 'public://block_image/',
+        '#upload_validators' => array(
+        'file_validate_extensions' => array('gif png jpg jpeg'),
+        ),
+      );
+
+      $form['link_text_manchester'] = array(
+          '#type' => 'textfield',
+          '#title' => t('Link <strong style="color:red">Destinations Manchester</strong>'),
+          '#size' => 20,
+          '#maxlength' => 255,
+          '#default_value' => variable_get('link_manchester', ''),
+      );
+
+	   // File selection form element
+      $form['banner_logo_manchester'] = array(
+        '#name' => 'logo_image_manchester',
+        '#type' => 'managed_file',
+        '#title' => t('Destination Manchester - Choose an Image File'),
+        '#description' => t('Select an Image for the <strong>Manchester</strong> custom block.  Only *.gif, *.png, *.jpg, and *.jpeg images allowed.'),
+        '#default_value' => variable_get('logo_image_fid_manchester', ''),
+        '#upload_location' => 'public://block_image/',
+        '#upload_validators' => array(
+        'file_validate_extensions' => array('gif png jpg jpeg'),
+        ),
+      );
+	  
+	  break;
+	}
+	return $form;
+}
+
+
+
+/**
+ * Implements hook_block_save().
+ */
+function logoblock_block_save($delta = '', $edit = array()) {
+  switch($delta) {
+    case 'logoblock_block' :
+
+      variable_set('link_manchester', $edit['link_text_manchester']);
+      variable_set('link_london', $edit['link_text_london']);
+
+      // Saving the file, setting it to a permanent state, setting a FID variable
+      $file_london = file_load($edit['banner_logo_london']);
+      $file_london->status = FILE_STATUS_PERMANENT;
+      file_save($file_london);
+      $block_london = block_load('logoblock', $delta);
+      file_usage_add($file_london, 'logoblock', 'block', $block_london->bid);
+      variable_set('logo_image_fid_london', $file_london->fid);
+      
+
+      
+      // Saving the file, setting it to a permanent state, setting a FID variable
+      $file_manchester = file_load($edit['banner_logo_manchester']);
+      $file_manchester->status = FILE_STATUS_PERMANENT;
+      file_save($file_manchester);
+      $block_manchester = block_load('logoblock', $delta);
+      file_usage_add($file_manchester, 'logoblock', 'block', $block_manchester->bid);
+      variable_set('logo_image_fid_manchester', $file_manchester->fid);
+
+      break;
+  }
+  
+  return;
+}
+
+
+/**
+ * Implements hook_block_view().
+ */
+function logoblock_block_view($delta='') {
+  $block = array();
+  drupal_add_js();
+  
+  switch($delta) {
+    case 'logoblock_block' :
+      $block['content'] = displaylogoblock_block_view();
+      break;
+  }
+  
+  return $block;
+}
+
+/**
+ * Custom function to assemble renderable array for block content.
+ * Returns a renderable array with the block content.
+ * @return returns a renderable array of block content.
+ */
+function displaylogoblock_block_view() {
+  $block = array();
+
+global $user;
+  $user = user_load($user->uid); // Make sure the user object is fully loaded
+  $field_event = field_get_items('user', $user, 'field_event');
+  $output = field_view_value('user', $user, 'field_event', $field_event[0]);
+   
+  if($output['#title'] == "London"){
+    $link_view = variable_get('link_london', '');
+  	$image_file = file_load(variable_get('logo_image_fid_london', ''));
+  }else{
+    $link_view = variable_get('link_manchester', '');
+  	$image_file = file_load(variable_get('logo_image_fid_manchester', ''));
+  }
+  
+  
+   // Capture the image file path and form into HTML with attributes
+ 
+  $image_path = '';
+
+  if (isset($image_file->uri)) {
+    $image_path = $image_file->uri;
+  }
+
+  $image = theme_image(array(
+    'path' => ($image_path),
+    'alt' => t('Destination logo'),
+    'title' => t('Destinations show'),
+    'attributes' => array('class' => 'destination-logo'),
+  ));
+
+  // Block output in HTML with div wrapper
+  $block = array(
+    
+    'flipDate' => array(
+      '#type' => 'markup',
+      '#markup' => '<div class="logo-image"><a href="' . $link_view . '" target="_blank">' . $image . '</a></div>',
+      '#suffix' => '',
+    )
+  );
+
+  return $block;
+}

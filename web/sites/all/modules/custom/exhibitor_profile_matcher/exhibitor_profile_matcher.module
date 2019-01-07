@@ -1,0 +1,592 @@
+<?php
+
+/**
+ * @file
+ * Clarion Exhibitor Profile Matcher
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function exhibitor_profile_matcher_menu() {
+  $items = [];
+
+  // Create upload/matcher page at admin/people/profile-matcher.
+  $items['admin/people/profile-matcher'] = [
+    'title' => 'Exhibitor Profile Matcher',
+    'access arguments' => ['administer users'],
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'exhibitor_profile_matcher_upload_page',
+  ];
+
+  $items['admin/people/profile-matcher/matcher'] = [
+    'title' => 'Match Profiles to Users',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'page callback' => 'exhibitor_profile_matcher_upload_page',
+  ];
+
+  // Create upload config page at admin/people/profile-matcher/settings.
+  $items['admin/people/profile-matcher/settings'] = [
+    'title' => 'Settings',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => ['exhibitor_profile_matcher_admin_form'],
+    'access arguments' => ['administer users'],
+  ];
+
+  return $items;
+}
+
+/**
+ * Upload page callback.
+ *
+ * @return array|mixed
+ */
+function exhibitor_profile_matcher_upload_page() {
+  return drupal_get_form('exhibitor_profile_matcher_upload_page_form');
+}
+
+/**
+ * Upload page form.
+ *
+ * If $_POST is empty, we assume this is a new upload, so we show the form
+ * to allow upload of a CSV file.
+ *
+ * If $_POST['step_1'] is not empty, we assume they've uploaded a CSV file,
+ * so we need to process it; this involves finding all the user accounts
+ * which match the e-mail addresses in the CSV, then get a list of _all_ the
+ * exhibitor profile nodes, and try to match them to the exhibitor names in
+ * the CSV file.
+ *
+ * We then show a form with all exhibitor profile nodes on the left, and
+ * a drop-down containing all the accounts on the right. If we positively
+ * matched the profile to an account based on what's in the CSV file, we
+ * pre-select that user and add a label of "matched from CSV"; if we don't
+ * have a match, select the node's existing user account and label "no match".
+ *
+ * At the top of the page, use drupal_set_message warnings to say when an
+ * e-mail address/title combo couldn't be matched because we couldn't find
+ * the exhibitor profile or couldn't find the account.
+ *
+ * We will add a hidden field which is a count of the number of rows, and we
+ * will also add a hidden field containing the default uid value for each
+ * node so we only have to update the database when a UID has changed.
+ *
+ * If $_POST['step_2'] is not empty, we assume they've finished finagling
+ * the users. Loop through each row using the counter as a guide and perform
+ * a db_update() to update the users which have been changed.
+ *
+ * @param $form
+ * @param $form_state
+ *
+ * @return array
+ */
+function exhibitor_profile_matcher_upload_page_form($form, $form_state) {
+  // Are we showing the "completion" page?
+  if (isset($_GET['complete'])) {
+    return exhibitor_profile_matcher_upload_page_complete($form, $form_state);
+  }
+  // Are we showing the step 2 page?
+  elseif (!empty($form_state['values']['step_1']) || isset($_GET['skipcsvupload'])) {
+    return exhibitor_profile_matcher_upload_page_form_step_2($form, $form_state);
+  }
+  // Show step 1.
+  else {
+    return exhibitor_profile_matcher_upload_page_form_step_1($form, $form_state);
+  }
+}
+
+/**
+ * Shows the form to allow upload of a CSV file.
+ *
+ * @param $form
+ * @param $form_state
+ *
+ * @return array
+ */
+function exhibitor_profile_matcher_upload_page_form_step_1($form, $form_state) {
+  $form = [];
+
+  $form['intro_text'] = [
+    '#markup' => '<h3>' . t('About this page') . '</h3>'
+      . '<p>' . t('Use this page to upload a CSV file which contains a mapping of exhibitor e-mail addresses to the names of their profiles.') . '</p>'
+      . '<p>' . t('If you don\'t have a CSV file to upload, you can !skip_link .', [
+        '!skip_link' => l(t('skip this page and go straight to the page where you can reassign page owners in bulk'), $_GET['q'], ['query' => ['skipcsvupload' => TRUE]]),
+      ]) . '</p>',
+    //      . '<p>' . t('') . '</p>'
+  ];
+
+  $form['csv_file'] = [
+    '#type' => 'file',
+    '#title' => t('CSV file (optional)'),
+    '#description' => t('Upload a CSV file containing exhibitor e-mail addresses in the first column, and the titles of the exhibitor profile pages in the second column. !sample_download_link. If you don\'t upload a CSV file, you can still use the tool to batch-change the exhibitor profile owners.', [
+      '!sample_download_link' => l(t('You can download a sample CSV file here'), drupal_get_path('module', 'exhibitor_profile_matcher') . '/exhibitor_profile_matcher_sample.csv'),
+    ]),
+  ];
+
+  $form['csv_file_has_header'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Does the file have a header row?'),
+    '#description' => t('If your CSV file has a header row (i.e. column titles at the top of each column), tick this box to ignore them.'),
+    '#default_value' => TRUE,
+  ];
+
+  $form['csv_file_separators'] = [
+    '#type' => 'select',
+    '#title' => t('Fields are separated with'),
+    '#description' => t('Is your file a comma-separated or tab-separated file?'),
+    '#options' => [
+      'CSV' => t('Comma-separated'),
+      'TSV' => t('Tab-separated'),
+    ],
+    '#default_value' => 'CSV',
+  ];
+
+  $form['csv_file_escape_character'] = [
+    '#type' => 'textfield',
+    '#title' => t('Escape character'),
+    '#description' => t('If unsure, leave this as a backslash ("\").'),
+    '#maxlength' => 1,
+    '#required' => TRUE,
+    '#default_value' => '\\',
+  ];
+
+  $form['csv_file_enclosure_character'] = [
+    '#type' => 'textfield',
+    '#title' => t('Enclosure character'),
+    '#description' => t('If your fields are wrapped in an enclosure character, enter it here. For example, some fields might be wrapped with a double quote (a " character).'),
+    '#maxlength' => 1,
+    '#required' => TRUE,
+    '#default_value' => '"',
+  ];
+
+  $form['step_1'] = [
+    '#type' => 'value',
+    '#value' => TRUE,
+  ];
+
+  $form['submit'] = [
+    '#type' => 'submit',
+    '#value' => t('Upload the file'),
+  ];
+
+  return $form;
+}
+
+/**
+ * Shows the form to allow upload of a CSV file.
+ *
+ * @param $form
+ * @param $form_state
+ *
+ * @return array
+ */
+function exhibitor_profile_matcher_upload_page_form_step_2($form, $form_state) {
+  // Get a list of all exhibitor profile node titles, NIDs, and UIDs, keyed
+  // by NID. Add an extra key containing the cleaned-up node title (trimmed,
+  // converted to lowercase, and non-alphanumerics removed), a key to indicate
+  // if the UID has been changed, and the changed UID, e.g.:
+
+  /*
+    $exhibitor_profile_nodes = [
+     1234 => [
+       'title' => 'Monkey 36!  ',
+       'nid' => 1234,
+       'uid' => 999,
+       'title_cleaned' => 'monkey 36',
+       'uid_changed' => FALSE,
+       'new_uid' => NULL,
+     ],
+    ];
+   */
+
+  $exhibitor_profile_nodes = [];
+
+  $query = db_select('node')
+    ->fields('node', ['title', 'uid', 'nid', 'status'])
+    ->condition('type', variable_get('exhibitor_profile_node_type', 'exhibitor'));
+
+  // Are we only showing published exhibitor profiles?
+  $published_only = variable_get('exhibitor_profile_published_only', TRUE);
+
+  if ($published_only) {
+    drupal_set_message(t('Note: only showing published exhibitor profiles. !change_setting_link.', [
+      '!change_setting_link' => l(t('You can change this setting here'), 'admin/people/profile-matcher/settings'),
+    ]), 'status');
+
+    $query->condition('status', TRUE);
+  }
+
+  $query->orderBy('title');
+  $results = $query->execute();
+
+  foreach ($results as $result) {
+    $exhibitor_profile_nodes[$result->nid] = [
+      'title' => $result->title,
+      'nid' => $result->nid,
+      'uid' => $result->uid,
+      'title_cleaned' => exhibitor_profile_matcher_clean_string($result->title),
+      'uid_changed' => FALSE,
+      'new_uid' => NULL,
+      'status' => $result->status,
+    ];
+  }
+
+  // Get a list of all user account e-mail addresses, UIDs, and names, keyed
+  // by e-mail address.
+  /*
+    $user_accounts_by_email = [
+      'alex@greyhead.co.uk' => [
+        'uid' => 999,
+        'name' => 'Monkey Man',
+      ],
+    ];
+  */
+
+  // Also create a list of accounts with the UID as the key.
+
+  /*
+    $user_accounts_by_uid = [
+      999 => t('@username <@email_address>', [
+        '@username' => 'Monkey Man',
+        '@email_address' => 'hello@greyhead.co.uk',
+      ]),
+    ];
+  */
+
+  $user_accounts_by_email = [];
+  $user_accounts_by_uid = [];
+
+  $results = db_select('users')
+    ->fields('users', ['uid', 'mail', 'name'])
+    ->condition('uid', 0, '!=')
+    ->execute();
+
+  foreach ($results as $result) {
+    $user_accounts_by_email[strtolower($result->mail)] = [
+      'uid' => $result->uid,
+      'name' => check_plain($result->name),
+    ];
+
+    $user_accounts_by_uid[$result->uid] = t('@username <@email_address>', [
+      '@username' => check_plain($result->name),
+      '@email_address' => $result->mail,
+    ]);
+  }
+
+  // Loop through the list of exhibitor profile nodes. If the cleaned-up node
+  // title matches an array key in the uploaded CSV file data, get the
+  // corresponding e-mail address and attempt to match it to a user ID.
+  // If a match is found, set uid_changed to TRUE and new_uid to the new
+  // user ID.
+
+  // The uploaded CSV data, if present, is in:
+  // $form_state['storage']['uploaded_csv_data']
+
+  // Use drupal_set_message warnings to say when an
+  // e-mail address/title combo couldn't be matched because we couldn't find
+  // the exhibitor profile or couldn't find the account.
+
+  $uploaded_csv_data = !empty($form_state['storage']['uploaded_csv_data']) ? $form_state['storage']['uploaded_csv_data'] : [];
+
+  foreach ($exhibitor_profile_nodes as $nid => &$exhibitor_profile_node) {
+    if (array_key_exists($exhibitor_profile_node['title_cleaned'], $uploaded_csv_data)) {
+      // We have a match.
+      $suggested_new_user_email = $uploaded_csv_data[$exhibitor_profile_node['title_cleaned']];
+
+      // Do we have a user account against this e-mail address?
+      if (array_key_exists($suggested_new_user_email, $user_accounts_by_email)) {
+        $suggested_new_user_uid = $user_accounts_by_email[$suggested_new_user_email]['uid'];
+        $exhibitor_profile_node['new_uid'] = $suggested_new_user_uid;
+        $exhibitor_profile_node['uid_changed'] = TRUE;
+      }
+    }
+  }
+
+  // We then build a form with all exhibitor profile nodes on the left, and
+  // a drop-down containing all the accounts on the right. If we positively
+  // matched the profile to an account based on what's in the CSV file, we
+  // pre-select that user and add a label of "matched from CSV"; if we don't
+  // have a match, select the node's existing user account and label "no match".
+  $form = [];
+
+  // We're going to render the drop-downs in a table. Because Web 1.0 :)
+  // @todo: There's probably a better way to do this. Probably using many,
+  // many arrays...
+  $form['exhibitor_profile_nodes_table_headings'] = [
+    '#markup' => '',
+    '#suffix' => '<table>
+      <tr>
+        <th>' . t('#') . '</th>
+        <th>' . t('Exhibitor Profile') . '</th>
+        <th>' . t('Published?') . '</th>
+        <th>' . t('Current Owner') . '</th>
+        <th>' . t('Suggested Owner') . '</th>
+      </tr>',
+  ];
+
+  // Use a counter to track the fields.
+  $delta = 0;
+
+  foreach ($exhibitor_profile_nodes as $nid => $exhibitor_profile_node) {
+    $form['exhibitor_profile_' . $nid]['node_delta_' . $delta] = [
+      '#prefix' => '<tr><td>',
+      '#markup' => ($delta + 1),
+      '#suffix' => '</td>',
+    ];
+
+    $form['exhibitor_profile_' . $nid]['node_title_' . $delta] = [
+      '#prefix' => '<td>',
+      '#markup' => '<span class="exhibitor-profile-link">' . l($exhibitor_profile_node['title'], 'node/' . $nid) . '</span>',
+      '#suffix' => '</td>',
+    ];
+
+    $form['exhibitor_profile_' . $nid]['node_published_' . $delta] = [
+      '#prefix' => '<td>',
+      '#markup' => $exhibitor_profile_node['status'] ? t('Published') : t('Not published'),
+      '#suffix' => '</td>',
+    ];
+
+    $form['exhibitor_profile_' . $nid]['node_uid_current_' . $delta] = [
+      '#prefix' => '<td>',
+      '#markup' => '<span class="exhibitor-profile-owner">' . l($user_accounts_by_uid[$exhibitor_profile_node['uid']], 'user/' . $exhibitor_profile_node['uid']) . '</span>',
+      '#suffix' => '</td>',
+    ];
+
+    $form['exhibitor_profile_' . $nid]['node_uid_' . $delta] = [
+      '#prefix' => '<td>',
+      '#type' => 'select',
+      //'#title' => t('Who owns this profile page?'),
+      '#options' => $user_accounts_by_uid,
+      '#default_value' => $exhibitor_profile_node['uid_changed'] ? $exhibitor_profile_node['new_uid'] : $exhibitor_profile_node['uid'],
+      '#description' => $exhibitor_profile_node['uid_changed']
+        ? t('<span class="matched">MATCHED: we think this user account should own this profile. Please check that this is the correct user account.</span>')
+        : t('<span class="not-matched">We couldn\'t find a better match for this exhibitor profile than the current owner; is this correct?.</span>'),
+      '#suffix' => '</td></tr>',
+    ];
+
+    // Add a hidden field containing the default uid value for each
+    // node so we only have to update the database when a UID has changed.
+    $form['exhibitor_profile_' . $nid]['node_uid_original_' . $delta] = [
+      '#type' => 'value',
+      '#value' => $exhibitor_profile_node['uid'],
+    ];
+
+    $form['exhibitor_profile_' . $nid]['node_nid_' . $delta] = [
+      '#type' => 'value',
+      '#value' => $nid,
+    ];
+
+    $delta++;
+  }
+
+  $form['exhibitor_profile_nodes_table_footer'] = [
+    '#prefix' => '</table>',
+    '#markup' => '',
+  ];
+
+  $form['step_2'] = [
+    '#type' => 'value',
+    '#value' => TRUE,
+  ];
+
+  // Add a hidden field which is a count of the number of rows.
+  $form['profiles_count'] = [
+    '#type' => 'value',
+    '#value' => count($exhibitor_profile_nodes),
+  ];
+
+  $form['submit'] = [
+    '#type' => 'submit',
+    '#value' => t('Save changes'),
+  ];
+
+  return $form;
+}
+
+/**
+ * Completion page.
+ */
+function exhibitor_profile_matcher_upload_page_complete($form, $form_state) {
+  $form = [];
+
+  $form['markup'] = [
+    '#markup' => '<h3>' . t('Operation complete') . '</h3>'
+      . '<p>' . t('Any changes to the profile pages have now been saved.'),
+  ];
+
+  return $form;
+}
+
+/**
+ * Validation handler for the profile matcher form.
+ *
+ * @param $form
+ * @param $form_state
+ */
+function exhibitor_profile_matcher_upload_page_form_validate($form, &$form_state) {
+  // If we're on step 1, if a CSV file was uploaded, parse its data.
+  //
+  // Process the uploaded CSV file into an array of e-mail addresses and
+  // exhibitor profile titles. Trim titles, convert to lowercase, and remove
+  // non-alphanumerics. Keyed by cleaned-up node title.
+
+  /*
+    $uploaded_csv_data = [
+      'monkey 36' => 'alex@greyhead.co.uk',
+    ];
+  */
+
+  if (empty($form_state['storage']['step_2'])) {
+    $uploaded_csv_data = [];
+
+    if (isset($form_state['values']['csv_file'])) {
+      // Save to the public directory.
+      //$destination = 'public://exhibitor_profile_matcher/';
+      $destination = 'public://';
+
+      // Validate the extension - should be CSV.
+      $validators = ['file_validate_extensions' => ['csv txt']];
+
+      if ($file = file_save_upload('csv_file', $validators, $destination, FILE_EXISTS_RENAME)) {
+        $form_state['values']['file_upload'] = $file;
+
+        if ($handle = fopen($file->uri, 'r')) {
+          // Read the file, then finagle it.
+          $delimiter = ($form_state['values']['csv_file_separators'] == 'TSV' ? "\t" : ',');
+          $escape_character = $form_state['values']['csv_file_escape_character'];
+          $enclosure_character = $form_state['values']['csv_file_enclosure_character'];
+
+          $file_contents = fread($handle, filesize($file->uri));
+          fclose($handle);
+
+          // Split the file into rows.
+          $file_contents_array = (array) explode(PHP_EOL, $file_contents);
+
+          // Does it have a header row?
+          if (!empty($form_state['values']['csv_file_has_header'])) {
+            $headers = array_shift($file_contents_array);
+          }
+
+          if (!empty($file_contents_array)) {
+            foreach ($file_contents_array as $file_row) {
+              $file_row_fields = str_getcsv($file_row, $delimiter, $enclosure_character, $escape_character);
+              $exhibitor_profile_name_cleaned = exhibitor_profile_matcher_clean_string($file_row_fields[1]);
+              $exhibitor_email_address = $file_row_fields[0];
+
+              $uploaded_csv_data[$exhibitor_profile_name_cleaned] = strtolower($exhibitor_email_address);
+            }
+          }
+        }
+        else {
+          form_set_error('csv_file', t('Unable to read uploaded file %filepath', ['%filepath' => $form_state['values']['csv_file']]));
+        }
+      }
+      else {
+        form_set_error('csv_file', t('Unable to save uploaded file. Please check your !file_settings.', [
+          '!file_settings' => l(t('file settings'), 'admin/config/media/file-system'),
+        ]));
+      }
+    }
+
+    $form_state['storage']['uploaded_csv_data'] = $uploaded_csv_data;
+  }
+}
+
+/**
+ * Submit handler for the profile matcher form.
+ *
+ * @param $form
+ * @param $form_state
+ */
+function exhibitor_profile_matcher_upload_page_form_submit($form, &$form_state) {
+  // Handle step 1: CSV file uploads.
+  if (empty($form_state['storage']['step_2'])) {
+    $form_state['storage']['step_2'] = TRUE;
+
+    $form_state['rebuild'] = TRUE;
+  }
+  // Handle step 2: processing the data.
+  else {
+    for ($delta = 0; $delta < $form_state['values']['profiles_count']; $delta++) {
+      // Get the NID.
+      $nid = $form_state['values']['node_nid_' . $delta];
+
+      // Has the UID been changed?
+      $uid_original = $form_state['values']['node_uid_original_' . $delta];
+      $uid_changed = $form_state['values']['node_uid_' . $delta];
+
+      if ($uid_original != $uid_changed) {
+        $num_updated = db_update('node')
+          ->fields([
+            'uid' => $uid_changed,
+          ])
+          ->condition('nid', $nid)
+          ->execute();
+
+        if ($num_updated == 1) {
+          drupal_set_message(t('Successfully changed the owner to UID @uid for <a href="/node/@nid">node @nid</a>.', [
+            '@nid' => $nid,
+            '@uid' => $uid_changed,
+          ]), 'status');
+        }
+        else {
+          drupal_set_message(t('Oh pants, something went wrong changing the owner to UID @uid for <a href="/node/@nid">node @nid</a>.', [
+            '@nid' => $nid,
+            '@uid' => $uid_changed,
+          ]), 'error');
+        }
+      }
+    }
+
+    // Flush all caches.
+    drupal_flush_all_caches();
+
+    // Go to the "complete" page.
+    drupal_goto($_GET['q'], ['query' => ['complete' => TRUE]]);
+  }
+}
+
+/**
+ * Configuration page for the Exhibitor Profile Matcher.
+ *
+ * @param $form
+ *
+ * @return mixed
+ */
+function exhibitor_profile_matcher_admin_form($form) {
+  $form = [];
+
+  $form['exhibitor_profile_node_type'] = [
+    '#title' => t('Exhibitor Profile Node Type'),
+    '#type' => 'select',
+    '#default_value' => variable_get('exhibitor_profile_node_type', 'exhibitor'),
+    '#options' => (array) node_type_get_names(),
+  ];
+
+  $form['exhibitor_profile_published_only'] = [
+    '#title' => t('Only show published profiles?'),
+    '#type' => 'checkbox',
+    '#default_value' => variable_get('exhibitor_profile_published_only', TRUE),
+    '#description' => t('Do you want to only see published profiles, or all profiles including unpublished? Note that showing unpublished profiles might result in an overwhelmingly-long list! :)'),
+  ];
+
+  return system_settings_form($form);
+}
+
+/**
+ * Trims a string, converts it to lowercase, and removes non-alphanumerics.
+ *
+ * @param string $string
+ *   The string to clean.
+ *
+ * @return string
+ *   The cleaned string.
+ */
+function exhibitor_profile_matcher_clean_string($string) {
+  $string = trim($string);
+  $string = drupal_strtolower($string);
+  $string = preg_replace("/[^A-Za-z0-9 ]/", '', $string);
+
+  return $string;
+}

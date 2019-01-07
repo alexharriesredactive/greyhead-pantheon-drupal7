@@ -1,0 +1,5 @@
+name = Homepage button ctool plugin
+description = Creates a homepage button
+core = 7.x
+dependencies[] = ctools
+dependencies[] = panels

@@ -1,0 +1,219 @@
+<?php
+/**
+* @name countdown.module
+* @author Giovanni Capuano <giovanni.capuano@clarionevents.com>
+* @version 1.0
+*  
+* @file
+* Implements various blocks to improve pending content workflow.
+*/
+
+/**
+* Implements hook_block_info().
+*/
+function countdown_block_info() {
+	$blocks['countdown_block'] = array(
+		'info' => t('Countdown Block'),
+		'status' => TRUE,
+		'region' => 'content',
+		'weight' => -13,
+		'visibility' => 1,
+		'class' => array(
+			'countdown-block'  
+      	), 
+	);
+	return $blocks;
+}
+
+
+/**
+* Implements hook_block_configure().
+*/
+function countdown_block_configure($delta) {
+	$form = array();
+	switch($delta) {
+	case 'countdown_block':
+	  drupal_add_library('system','ui.datepicker');
+	  drupal_add_js('jQuery(document).ready(function(){jQuery( ".pickadate" ).datepicker({
+	      dateFormat: "yy-mm-dd",
+	      autoSize: true
+	    });});', 'inline'); 
+	  $form['date_event_london'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('Event Date <strong style="color:red">Destinations London</strong>'),
+	    '#size' => 10,
+	    '#maxlength' => 10,
+	    '#attributes' => array('class' => array('pickadate')),
+	    '#default_value' => variable_get('text_date_london', '2015-09-17'),	
+	    '#description' => t('E.g., 2015-09-17 - yy-mm-dd <br/> *Please be aware that days, months and years are formed of two digits even if it is less than 10; <strong>e.g. 03-02-06</strong>'),
+	  ); 
+	
+		
+	  $form['time_london'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Time <strong style="color:red">Destinations London</strong>'),
+		'#default_value' => variable_get('text_time_london', '12:15'),	
+		'#description' => t('E.g., 12:15 <br/> *Please be aware that hours are formed of two digits even if it is less than 10; <strong>e.g. 03:00</strong>'),
+	  );
+	  
+	  // File selection form element
+      $form['banner_file_london'] = array(
+        '#name' => 'block_image_london',
+        '#type' => 'managed_file',
+        '#title' => t('Destination London - Choose an Image File'),
+        '#description' => t('Select an Image for the <strong>London</strong> custom block.  Only *.gif, *.png, *.jpg, and *.jpeg images allowed.'),
+        '#default_value' => variable_get('block_image_fid_london', ''),
+        '#upload_location' => 'public://block_image/',
+        '#upload_validators' => array(
+        'file_validate_extensions' => array('gif png jpg jpeg'),
+        ),
+      );
+	  
+	  $form['date_event_manchester'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('Event Date <strong style="color:red">Destinations Manchester</strong>'),
+	    '#size' => 10,
+	    '#maxlength' => 10,
+	    '#attributes' => array('class' => array('pickadate')),
+	    '#default_value' => variable_get('text_date_manchester', '2015-09-17'),	
+	    '#description' => t('E.g., 2015-09-17 - yy-mm-dd <br/> *Please be aware that days, months and years are formed of two digits even if it is less than 10; <strong>e.g. 03-02-06</strong>'),
+	  ); 
+	
+		
+	  $form['time_manchester'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Time <strong style="color:red">Destinations Manchester</strong>'),
+		'#default_value' => variable_get('text_time_manchester', '12:15'),	
+		'#description' => t('E.g., 12:15 <br/> *Please be aware that hours are formed of two digits even if it is less than 10; <strong>e.g. 03:00</strong>'),
+	  );
+	  
+	  
+	   // File selection form element
+      $form['banner_file_manchester'] = array(
+        '#name' => 'block_image_manchester',
+        '#type' => 'managed_file',
+        '#title' => t('Destination Manchester - Choose an Image File'),
+        '#description' => t('Select an Image for the <strong>Manchester</strong> custom block.  Only *.gif, *.png, *.jpg, and *.jpeg images allowed.'),
+        '#default_value' => variable_get('block_image_fid_manchester', ''),
+        '#upload_location' => 'public://block_image/',
+        '#upload_validators' => array(
+        'file_validate_extensions' => array('gif png jpg jpeg'),
+        ),
+      );
+	  
+	  break;
+	}
+	return $form;
+}
+
+
+
+/**
+ * Implements hook_block_save().
+ */
+function countdown_block_save($delta = '', $edit = array()) {
+  switch($delta) {
+    case 'countdown_block' :
+       
+      variable_set('text_date_london', $edit['date_event_london']);
+      variable_set('text_time_london', $edit['time_london']);
+      
+      // Saving the file, setting it to a permanent state, setting a FID variable
+      $file_london = file_load($edit['banner_file_london']);
+      $file_london->status = FILE_STATUS_PERMANENT;
+      file_save($file_london);
+      $block_london = block_load('countdown', $delta);
+      file_usage_add($file_london, 'countdown', 'block', $block_london->bid);
+      variable_set('block_image_fid_london', $file_london->fid);
+      
+      
+      
+      variable_set('text_date_manchester', $edit['date_event_manchester']);
+      variable_set('text_time_manchester', $edit['time_manchester']);
+      
+      // Saving the file, setting it to a permanent state, setting a FID variable
+      $file_manchester = file_load($edit['banner_file_manchester']);
+      $file_manchester->status = FILE_STATUS_PERMANENT;
+      file_save($file_manchester);
+      $block_manchester = block_load('countdown', $delta);
+      file_usage_add($file_manchester, 'countdown', 'block', $block_manchester->bid);
+      variable_set('block_image_fid_manchester', $file_manchester->fid);
+
+      break;
+  }
+  
+  return;
+}
+
+
+/**
+ * Implements hook_block_view().
+ */
+function countdown_block_view($delta='') {
+  $block = array();
+  drupal_add_js();
+  
+  switch($delta) {
+    case 'countdown_block' :
+      $block['content'] = displaycountdown_block_view();
+      break;
+  }
+  
+  return $block;
+}
+
+/**
+ * Custom function to assemble renderable array for block content.
+ * Returns a renderable array with the block content.
+ * @return returns a renderable array of block content.
+ */
+function displaycountdown_block_view() {
+  $block = array();
+
+global $user;
+  $user = user_load($user->uid); // Make sure the user object is fully loaded
+  $field_event = field_get_items('user', $user, 'field_event');
+  $output = field_view_value('user', $user, 'field_event', $field_event[0]);
+   
+  if($output['#title'] == "London"){
+  	$date_view = variable_get('text_date_london', '');
+  	$time_view = variable_get('text_time_london', '');
+  	$image_file = file_load(variable_get('block_image_fid_london', ''));
+  }else{
+  	$date_view = variable_get('text_date_manchester', '');
+  	$time_view = variable_get('text_time_manchester', '');
+  	$image_file = file_load(variable_get('block_image_fid_manchester', ''));
+  }
+  
+  
+   // Capture the image file path and form into HTML with attributes
+ 
+  $image_path = '';
+
+  if (isset($image_file->uri)) {
+    $image_path = $image_file->uri;
+  }
+
+  $image = theme_image(array(
+    'path' => ($image_path),
+    'alt' => t('Destination logo'),
+    'title' => t('Destinations show'),
+    'attributes' => array('class' => 'destination-logo'),
+  ));
+  
+  
+
+ drupal_add_js(drupal_get_path('module', 'Countdown') . '/library/flipclock/flipclock.js');
+ drupal_add_css(drupal_get_path('module', 'Countdown') . '/library/flipclock/flipclock.css', array('group' => CSS_DEFAULT, 'every_page' => FALSE));
+  // Block output in HTML with div wrapper
+  $block = array(
+    
+    'flipDate' => array(
+      '#type' => 'markup',
+      '#markup' => $image . '<div class="clock" style="margin:2em;"></div><script type="text/javascript">jQuery(document).ready(function() {var currentDate = new Date(); var futureDate  = new Date("' . $date_view . 'T' . $time_view . '"); var diff = futureDate.getTime() / 1000 - currentDate.getTime() / 1000;clock = jQuery(".clock").FlipClock(diff, {clockFace: "DailyCounter", countdown: true });});</script>',
+      '#suffix' => '',
+    )
+  );
+
+  return $block;
+}

@@ -1,0 +1,22 @@
+<?php
+/*
+ * @file
+ */
+ function navigator_field_schema($field){
+ 	$columns = array(
+		'label' => array(
+			'type' => 'varchar',
+			'length' => 128,
+			'not null' => FALSE,
+		),
+	);
+	
+	$indexes = array(
+		'label' => array('label'),
+	);
+	
+	return array(
+		'columns' => $columns,
+		'indexes' => $indexes
+	);
+ }

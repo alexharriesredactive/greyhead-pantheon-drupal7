@@ -5,6 +5,9 @@
  * Search API data alteration callback.
  */
 
+/**
+ * {@inheritdoc}
+ */
 class SearchApiAttachmentsFieldCollectionsAlterSettings extends SearchApiAttachmentsAlterSettings {
 
   /**
@@ -15,7 +18,7 @@ class SearchApiAttachmentsFieldCollectionsAlterSettings extends SearchApiAttachm
     $field_collections_instances = field_info_instances('field_collection_item');
     $field_collections = array_keys($field_collections_instances);
     if (!empty($field_collections_instances)) {
-      foreach ($items as $id => &$item) {
+      foreach ($items as &$item) {
         // Case of field collection fields.
         foreach ($field_collections as $field_collection) {
           if (isset($item->{$field_collection})) {
@@ -108,4 +111,5 @@ class SearchApiAttachmentsFieldCollectionsAlterSettings extends SearchApiAttachm
     }
     return $ret;
   }
+
 }

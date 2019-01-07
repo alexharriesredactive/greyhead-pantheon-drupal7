@@ -93,7 +93,7 @@ function common_base_modules_ckeditor_profile_defaults() {
     [\'Table\'],
     [\'HorizontalRule\',\'SpecialChar\',\'Iframe\',\'CodeSnippet\'],
     \'/\',
-    [\'Bold\',\'Italic\',\'Underline\',\'Strike\',\'-\',\'Subscript\',\'Superscript\',\'-\',\'RemoveFormat\'],
+    [\'JustifyLeft\',\'JustifyCenter\',\'-\',\'Bold\',\'Italic\',\'Underline\',\'Strike\',\'-\',\'Subscript\',\'Superscript\',\'-\',\'RemoveFormat\'],
     [\'NumberedList\',\'BulletedList\',\'-\',\'Outdent\',\'Indent\',\'Blockquote\',\'CreateDiv\'],
     [\'-\'],
     [\'Link\',\'Unlink\',\'Anchor\'],

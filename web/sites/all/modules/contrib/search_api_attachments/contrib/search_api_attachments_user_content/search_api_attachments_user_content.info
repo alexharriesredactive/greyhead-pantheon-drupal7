@@ -6,9 +6,8 @@ package = Search
 
 files[] = includes/callback_attachments_user_content_settings.inc
 
-; Information added by Drupal.org packaging script on 2017-07-08
-version = "7.x-1.12"
+; Information added by Drupal.org packaging script on 2018-11-28
+version = "7.x-1.18"
 core = "7.x"
 project = "search_api_attachments"
-datestamp = "1499524145"
-
+datestamp = "1543400287"

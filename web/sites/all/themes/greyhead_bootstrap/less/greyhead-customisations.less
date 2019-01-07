@@ -33,21 +33,10 @@ html.js .only-visible-without-js {
   display: none;
 }
 
-// Make menu <li>s and <a>s display inline by default, except in the header.
+// Make menus display inline by default.
 .nav {
   li {
-    &,
-    & a {
-      display: inline-block;
-    }
-  }
-}
-
-header {
-  .nav {
-    li {
-      display: block;
-    }
+    display: inline-block;
   }
 }
 

@@ -1,0 +1,6 @@
+name = Newsletter block
+description = Blocks for Newsletter link.
+package = Clarion Events Development
+core = 7.x
+version = 1.0
+files[] = newsletterblock.module

@@ -1,7 +1,0 @@
-<?php
-/**
- * @file
- * Code for the Greyhead Amazon S3 feature.
- */
-
-include_once 'greyhead_s3fs.features.inc';

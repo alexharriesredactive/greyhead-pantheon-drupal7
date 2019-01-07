@@ -6901,7 +6901,7 @@ body #admin-menu .dropdown li {
 .modal-backdrop {
   z-index: 1610;
 }
-footer.footer {
+.footer {
   margin-top: 45px;
   padding-top: 35px;
   padding-bottom: 36px;
@@ -7334,7 +7334,7 @@ td.radio {
   font-size: 100%;
   color: #666666;
 }
-.views-display-settings footer.footer {
+.views-display-settings .footer {
   padding: 0;
   margin: 4px 0 0 0;
 }
@@ -7509,12 +7509,8 @@ html.js .only-visible-with-js,
 html.js .only-visible-without-js {
   display: none;
 }
-.nav li,
-.nav li a {
+.nav li {
   display: inline-block;
-}
-header .nav li {
-  display: block;
 }
 .paragraphs-item--large-quote-intro-text-style-intro-text {
   text-align: center;
@@ -7676,53 +7672,74 @@ html.js .navbar-header .header-menu-container .row:last-child {
 html.js .navbar-header .header-menu-container ul ul {
   padding-left: 1.5em;
 }
-html.js .navbar-header .showhideable-target ul {
+html.js .navbar-header .showhideable-target ul,
+html.js footer.footer ul {
   margin: 0.5em 0;
   padding: 0;
 }
-html.js .navbar-header .showhideable-target ul ul {
+html.js .navbar-header .showhideable-target ul ul,
+html.js footer.footer ul ul {
   margin-left: 2em;
 }
 html.js .navbar-header .showhideable-target,
+html.js footer.footer,
 html.js .navbar-header .showhideable-target a,
+html.js footer.footer a,
 html.js .navbar-header .showhideable-target .navbar-nav > .active > a,
+html.js footer.footer .navbar-nav > .active > a,
 html.js .navbar-header .showhideable-target .navbar-nav > .active > a:hover,
+html.js footer.footer .navbar-nav > .active > a:hover,
 html.js .navbar-header .showhideable-target .navbar-nav > .active > a:focus,
+html.js footer.footer .navbar-nav > .active > a:focus,
 html.js .navbar-header .showhideable-target .navbar-nav > li > a,
+html.js footer.footer .navbar-nav > li > a,
 html.js .navbar-header .showhideable-target .navbar-nav > li > a:hover,
+html.js footer.footer .navbar-nav > li > a:hover,
 html.js .navbar-header .showhideable-target .navbar-nav > li > a.active-trail,
+html.js footer.footer .navbar-nav > li > a.active-trail,
 html.js .navbar-header .showhideable-target .navbar-nav > .open > a,
+html.js footer.footer .navbar-nav > .open > a,
 html.js .navbar-header .showhideable-target .navbar-nav > .open > a:hover,
-html.js .navbar-header .showhideable-target .navbar-nav > .open > a:focus {
-  color: #888;
+html.js footer.footer .navbar-nav > .open > a:hover,
+html.js .navbar-header .showhideable-target .navbar-nav > .open > a:focus,
+html.js footer.footer .navbar-nav > .open > a:focus {
+  color: #fff;
 }
-html.js .navbar-header .showhideable-target .form-control {
-  color: #888;
+html.js .navbar-header .showhideable-target .form-control,
+html.js footer.footer .form-control {
+  color: #fff;
   background-color: #222;
   border-color: #555;
 }
-html.js .navbar-header .showhideable-target .navbar-nav > li > a {
+html.js .navbar-header .showhideable-target .navbar-nav > li > a,
+html.js footer.footer .navbar-nav > li > a {
   line-height: initial;
   font-size: 1.8em;
 }
-html.js .navbar-header .showhideable-target .navbar-nav > li > ul > li > a {
+html.js .navbar-header .showhideable-target .navbar-nav > li > ul > li > a,
+html.js footer.footer .navbar-nav > li > ul > li > a {
   line-height: initial;
   font-size: 1.2em;
 }
-html.js .navbar-header .showhideable-target a {
+html.js .navbar-header .showhideable-target a,
+html.js footer.footer a {
   padding: 0.5em 5px;
   margin: 0;
 }
-html.js .navbar-header .showhideable-target a:hover {
+html.js .navbar-header .showhideable-target a:hover,
+html.js footer.footer a:hover {
   text-decoration: underline;
 }
-html.js .navbar-header .showhideable-target #block-lang-dropdown-language {
+html.js .navbar-header .showhideable-target #block-lang-dropdown-language,
+html.js footer.footer #block-lang-dropdown-language {
   margin-left: 40px;
 }
-html.js .navbar-header .showhideable-target form#lang-dropdown-form {
+html.js .navbar-header .showhideable-target form#lang-dropdown-form,
+html.js footer.footer form#lang-dropdown-form {
   position: relative;
 }
-html.js .navbar-header .showhideable-target form#lang-dropdown-form img.language-icon {
+html.js .navbar-header .showhideable-target form#lang-dropdown-form img.language-icon,
+html.js footer.footer form#lang-dropdown-form img.language-icon {
   position: absolute;
   left: -34px;
   top: 50%;
@@ -7914,23 +7931,4 @@ body.node-type-paragraph-page:not(.page-node-edit) .main-container .container-ma
 body.node-type-paragraph-page:not(.page-node-edit) .main-container .container-may-be-fluid > section.col-lg-12 {
   padding-left: 0;
   padding-right: 0;
-}
-footer.footer {
-  text-align: center;
-  color: #888;
-}
-footer.footer a,
-footer.footer .navbar-nav > .active > a,
-footer.footer .navbar-nav > .active > a:hover,
-footer.footer .navbar-nav > .active > a:focus,
-footer.footer .navbar-nav > li > a,
-footer.footer .navbar-nav > li > a:hover,
-footer.footer .navbar-nav > li > a.active-trail,
-footer.footer .navbar-nav > .open > a,
-footer.footer .navbar-nav > .open > a:hover,
-footer.footer .navbar-nav > .open > a:focus {
-  color: #555;
-}
-footer.footer a:hover {
-  text-decoration: underline;
 }

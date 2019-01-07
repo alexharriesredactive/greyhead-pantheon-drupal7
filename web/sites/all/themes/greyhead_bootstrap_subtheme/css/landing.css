@@ -1,0 +1,49 @@
+body.front-page,
+body.front-page .navbar-default {
+  background-color: #303030;
+  color: #FFFFFF;
+  border: 0;
+}
+
+body.front-page {
+  font-size: 1.6em;
+}
+
+body.front-page .landing-intro {
+  font-size: 1.6em;
+  line-height: 1.6em;
+  display: inline-block;
+}
+
+body.front-page .landing-intro img {
+  float: left;
+  margin: 5px 40px 25px 0px;
+  max-width: 35%;
+}
+body.front-page .landing-intro h1 {
+  padding: 30px 0;
+}
+body.front-page .landing-intro {
+  margin-bottom: 10px;
+  border-bottom: 3px solid #FFFFFF;
+}
+
+
+body.front-page .landing-text-left {
+  margin-right: 40px;
+}
+body.front-page .landing-text-right {
+}
+
+body.front-page .landing-text-left,
+body.front-page .landing-text-right {
+  max-width: 500px;
+  display: inline-table;
+  width: 95%;
+}
+
+
+footer .parent-link {
+  text-align: center;
+}
+

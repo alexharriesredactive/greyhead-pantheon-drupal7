@@ -1,0 +1,6 @@
+name = Node Navigator
+description = Allow navigation on next or previous node with specific taxonomy.
+core = 7.x
+dependencies[] = field
+dependencies[] = prev_next
+dependencies[] = pathauto

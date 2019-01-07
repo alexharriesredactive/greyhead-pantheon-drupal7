@@ -1,8 +1,8 @@
 Search API Attachments Paragraphs
 
 This contrib module extends the work of search_api_attachments by indexing
-the files that belong to a paragraphs item referenced by a paragraphs field in the
-parent entity index.
+the files that belong to a paragraphs item referenced by a paragraphs field in
+the parent entity index.
 
 
 Example:
