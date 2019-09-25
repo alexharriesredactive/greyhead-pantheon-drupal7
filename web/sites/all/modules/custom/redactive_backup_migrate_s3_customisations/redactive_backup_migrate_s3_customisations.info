@@ -1,0 +1,15 @@
+name = Redactive Backup Migrate S3 Customisations
+description = Allows backups to S3 to include a _<site name>--latest.txt file to allow automated build scripts to more-easily find the latest database backup for a particular site. This module requires a patched version of backup_migrate_s3.
+package = redactive_backup_migrate_s3_customisations
+core = 7.x
+version = 7.x-1.0-20190925
+;interface translation project = FALSE
+
+;files[] =
+dependencies[] = backup_migrate_s3
+dependencies[] = backup_migrate
+dependencies[] = ctools
+features[backup_migrate_destinations][] = redactive_s3_database_backups
+features[backup_migrate_schedules][] = redactive_s3_database_backups_daily
+features[ctools][] = backup_migrate:backup_migrate_exportables:1
+features[features_api][] = api:2

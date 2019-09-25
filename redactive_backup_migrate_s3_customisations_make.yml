@@ -1,0 +1,84 @@
+# makefile to download and install the Redactive-patched Backup Migrate S3 module and accompanying code to allow
+# automated off-site backups to the Redactive S3 database buckets.
+# ----------------
+# Example use:
+#
+# cd /path/to/repo (not /path/to/repo/www)
+# drush make redactive_backup_migrate_s3_customisations_make.yml www --no-core
+
+# Core version
+# ------------
+# Each makefile should begin by declaring the core version of Drupal that all
+# projects should be compatible with.
+
+core: "7.x"
+
+# API version
+# ------------
+# Every makefile needs to declare it's Drush Make API version. This version of
+# drush make uses API version `2`.
+
+api: 2
+
+# Core project
+# ------------
+# In order for your makefile to generate a full Drupal site, you must include
+# a core project. This is usually Drupal core, but you can also specify
+# alternative core projects like Pressflow. Note that makefiles included with
+# install profiles *should not* include a core project.
+
+# Use Pressflow instead of Drupal core:
+# projects:
+#   pressflow:
+#     type: "core"
+#     download:
+#       type: "file"
+#       url: "http://launchpad.net/pressflow/6.x/6.15.73/+download/pressflow-6.15.73.tar.gz"
+#
+# Git clone of Drupal 7.x. Requires the `core` property to be set to 7.x.
+# projects
+#   drupal:
+#     type: "core"
+#     download:
+#       url: "https://git.drupalcode.org/project/drupal.git"
+
+projects:
+  # Projects
+  # --------
+  # Each project that you would like to include in the makefile should be
+  # declared under the `projects` key. The simplest declaration of a project
+  # looks like this:
+
+  backup_migrate_s3:
+    type: "module"
+    subdir: "patched"
+    download:
+      type: "git" # Note, 'git' is the default, no need to specify.
+      url: "git@bitbucket.org:redactivemedia/backup_migrate_s3.git"
+      #      tag: "20190925132212"
+      overwrite: TRUE
+
+  redactive_backup_migrate_s3_customisations:
+    type: "module"
+    subdir: "custom"
+    download:
+      type: "git" # Note, 'git' is the default, no need to specify.
+      url: "git@bitbucket.org:redactivemedia/redactive_backup_migrate_s3_customisations.git"
+      #      tag: "20190925134422"
+      overwrite: TRUE
+
+libraries:
+  aws-sdk-php:
+    download:
+      type: "get"
+      url: "https://github.com/aws/aws-sdk-php/releases/download/2.8.30/aws.zip"
+      destination: "libraries"
+      overwrite: TRUE
+
+# If all projects or libraries share common attributes, the `defaults`
+# array can be used to specify these globally, rather than
+# per-project.
+
+defaults:
+  projects:
+    subdir: "contrib"

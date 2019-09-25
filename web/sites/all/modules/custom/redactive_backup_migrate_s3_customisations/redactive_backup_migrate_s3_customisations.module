@@ -1,0 +1,223 @@
+<?php
+/**
+ * @file
+ * redactive_backup_migrate_s3_customisations.module
+ */
+
+include_once 'redactive_s3_database_backups_customisations.features.inc';
+
+libraries_load('aws-sdk-php');
+use Aws\S3\S3Client;
+use Aws\S3\Exception\S3Exception;
+
+/**
+ * Constants.
+ */
+
+// Default Amazon S3 region - EU London.
+const REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_REGION_DEFAULT = 'eu-west-2';
+
+// Redactive Site Name.
+const REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_SITE_NAME_CONF_VAR = 'redactive_site_name';
+
+// Redactive AWS S3 API key.
+const REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_S3_API_KEY_CONF_VAR = 'redactive_backup_migrate_s3_api_key';
+
+// Redactive AWS S3 API secret.
+const REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_S3_API_SECRET_CONF_VAR = 'redactive_backup_migrate_s3_api_secret';
+
+/**
+ * Implements hook_form_alter().
+ */
+function redactive_backup_migrate_s3_customisations_form_alter(&$form, &$form_state, $form_id) {
+  // Alter the Backup Migrate S3 settings form.
+  if ($form_id == 'backup_migrate_crud_edit_form') {
+    // Add an S3 region to Backup Migrate S3.
+    $form['region'] = [
+      '#type' => 'textfield',
+      '#title' => t('S3 Region'),
+      '#description' => t('e.g. !region_default', ['!region_default' => REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_REGION_DEFAULT]),
+      '#required' => TRUE,
+      '#default_value' => REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_REGION_DEFAULT,
+      '#weight' => 25,
+    ];
+    
+    // Add the site name - e.g. public-finance-d7 - to the backup, so we can
+    // create the _<site name>--latest.txt file for automated build script
+    // excitingness.
+    global $conf;
+    
+    $form['redactive_site_name'] = [
+      '#type' => 'textfield',
+      '#title' => t('Redactive Site Name'),
+      '#description' => t('e.g. <em>public-finance-d7</em> - this will be used to create the <em>_&lt;site name&gt;--latest.txt</em> file for the Redactive Platform automated build scripts.'),
+      '#required' => TRUE,
+      '#default_value' => !empty($conf[REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_SITE_NAME_CONF_VAR]) ? $conf[REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_SITE_NAME_CONF_VAR] : variable_get('redactive_site_name'),
+    ];
+    
+    // If the S3 API key and secret have been set in $conf, set the user and
+    // pass fields to disabled, not required, and add help text indicating
+    // their values are provided elsewhere.
+    if (!empty($conf[REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_S3_API_KEY_CONF_VAR])
+      && !empty($conf[REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_S3_API_SECRET_CONF_VAR])) {
+      $form['user']['#required'] = FALSE;
+      $form['user']['#disabled'] = TRUE;
+      $form['user']['#default_value'] = '';
+      
+      $form['user']['#description'] = t('This value is being provided by your server configuration in the <em>$conf[\'!s3keyvariablename\']</em> variable', [
+        '!s3keyvariablename' => REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_S3_API_KEY_CONF_VAR,
+      ]);
+      
+      $form['pass']['#required'] = FALSE;
+      $form['pass']['#disabled'] = TRUE;
+  
+      $form['pass']['#description'] = t('This value is being provided by your server configuration in the <em>$conf[\'!s3keyvariablename\']</em> variable', [
+        '!s3keyvariablename' => REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_S3_API_SECRET_CONF_VAR,
+      ]);
+      
+      // Add in the old_password field as a server-side value.
+      $form['old_password'] = [
+        '#type' => 'value',
+        '#value' => NULL,
+      ];
+    }
+  }
+}
+
+/**
+ * Implements hook_backup_migrate_s3_config_alter().
+ *
+ * $context can be one of:
+ *
+ *  - edit_form_validate: validating the S3 config before saving, in
+ *    class backup_migrate_destination_s3_compatible -> edit_form_validate()
+ *  - s3_init: in class backup_migrate_destination_s3_compatible -> s3_init()
+ *
+ * @param $config
+ * @param $context
+ * @param $form
+ * @param $form_state
+ */
+function redactive_backup_migrate_s3_customisations_backup_migrate_s3_config_alter(&$config, $context, $form, $form_state) {
+  // Request signature version 4 for request authentication, to prevent the
+  // error: "InvalidRequest The authorization mechanism you have provided is not supported. Please use AWS4-HMAC-SHA256."
+  // @see https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingAWSSDK.html
+  $config['signature'] = 'v4';
+  $config['version'] = 'latest';
+  
+  // Also add the region in - use the default if this hook_alter hasn't been
+  // called from the edit form.
+  $config['region'] = !empty($form_state['values']['region']) ? $form_state['values']['region'] : REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_REGION_DEFAULT;
+  
+  // If the S3 API key and secret have been set in $conf, provide them here.
+  global $conf;
+  if (!empty($conf[REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_S3_API_KEY_CONF_VAR])
+    && !empty($conf[REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_S3_API_SECRET_CONF_VAR])) {
+    $config['key'] = $conf[REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_S3_API_KEY_CONF_VAR];
+    $config['secret'] = $conf[REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_S3_API_SECRET_CONF_VAR];
+  }
+  
+  // When validating the S3 destination's edit form, put the key and secret
+  // back into the form values.
+  if ($context == 'edit_form_validate') {
+    $form_state['values']['user'] = $conf[REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_S3_API_KEY_CONF_VAR];
+    $form_state['values']['pass'] = $conf[REDACTIVE_BACKUP_MIGRATE_S3_CUSTOMISATIONS_S3_API_SECRET_CONF_VAR];
+  }
+  
+  // When validating the S3 destination's edit form, put site name into the
+  // config array and save it to the variable table.
+  if ($context == 'edit_form_validate') {
+    $config['redactive_site_name'] = $form_state['values']['redactive_site_name'];
+    variable_set('redactive_site_name', $form_state['values']['redactive_site_name']);
+  }
+  else {
+    $config['redactive_site_name'] = variable_get('redactive_site_name');
+  }
+}
+
+/**
+ * Implements hook_backup_migrate_s3_save_file_alter().
+ *
+ * When uploading a database backup to S3, also create and upload a "latest"
+ * file which contains the name of the most-recently-uploaded database.
+ *
+ * @param $config
+ * @param $file
+ * @param $settings
+ */
+function redactive_backup_migrate_s3_customisations_backup_migrate_s3_save_file_alter(&$file, $backup_migrate_destination_s3_compatible, $settings, $options) {
+  // This alter hook will be called for both the database backup itseld, and
+  // the .info file which accompanies the database; we only want to create a
+  // "latest" file for the database backup itself; not the .info file.
+  if ($extension = end($file->ext)) {
+    if ($extension == 'info') {
+      return;
+    }
+  }
+  
+  // If the site name is empty, return.
+  $redactive_site_name = variable_get('redactive_site_name');
+  if (empty($redactive_site_name)) {
+    return;
+  }
+  
+  // Set the file name.
+  $latest_file_filename = '_' . $redactive_site_name . '--latest.txt';
+  
+  // Create a text file named _<site name>--latest.txt containing the file
+  // name.
+  $latest_file = new stdClass();
+  
+//  $latest_file = new stdClass();
+  $latest_file->filename = $latest_file_filename;
+  $latest_file->contents = $backup_migrate_destination_s3_compatible->s3_path($file->filename());
+  $latest_file->filepath = file_unmanaged_save_data($latest_file->contents, NULL, FILE_EXISTS_REPLACE);
+  
+  if (empty($latest_file->filepath)) {
+    return;
+  }
+  
+  try {
+    $backup_migrate_destination_s3_compatible->s3->deleteObject(array(
+      'Bucket' => $backup_migrate_destination_s3_compatible->s3_bucket(),
+      
+      // We don't use the sub-path as we always upload to the root of the
+      // bucket.
+//      'Key'    => $backup_migrate_destination_s3_compatible->s3_path($latest_file_filename),
+      'Key'    => $latest_file_filename,
+    ));
+  }
+  catch (S3Exception $e) {
+    drupal_set_message(t('There was an error deleting the file !filename.', [
+      '!filename' => $latest_file_filename,
+    ]));
+  }
+  
+  // Upload the file to the root of the S3 bucket.
+  $options = array();
+  
+  if (!empty($backup_migrate_destination_s3_compatible->settings['s3_min_part_size'])) {
+    $options['min_part_size'] = $backup_migrate_destination_s3_compatible->settings['s3_min_part_size'] * 1024 * 1024;
+  }
+  
+  try {
+    $backup_migrate_destination_s3_compatible->s3->upload(
+      $backup_migrate_destination_s3_compatible->s3_bucket(),
+  
+      // We don't use the sub-path as we always upload to the root of the
+      // bucket.
+      $latest_file_filename,
+      fopen($latest_file->filepath, 'r'),
+      'private',
+      $options
+    );
+  }
+  catch (S3Exception $e) {
+    $e_msg = 'S3 error saving %file - %code %error';
+    $e_args = array('%file' => $file->filename(), '%error' => $e->getMessage(), '%code' => $e->getAwsErrorCode());
+    drupal_set_message(t($e_msg, $e_args), 'error');
+    watchdog('redactive_backup_migrate_s3_customisations', $e_msg, $e_args, WATCHDOG_ERROR);
+  }
+  
+  watchdog('redactive_backup_migrate_s3_customisations', 'Saved latest DB backup text file to S3. Filename: !filename', ['!filename' => $latest_file_filename], WATCHDOG_INFO);
+}
