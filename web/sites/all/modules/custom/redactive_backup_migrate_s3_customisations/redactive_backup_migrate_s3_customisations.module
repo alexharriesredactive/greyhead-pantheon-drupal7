@@ -4,7 +4,7 @@
  * redactive_backup_migrate_s3_customisations.module
  */
 
-include_once 'redactive_s3_database_backups_customisations.features.inc';
+include_once 'redactive_backup_migrate_s3_customisations.features.inc';
 
 libraries_load('aws-sdk-php');
 use Aws\S3\S3Client;

@@ -2,13 +2,13 @@
 
 /**
  * @file
- * redactive_s3_database_backups_customisations.backup_migrate_exportables.inc
+ * redactive_backup_migrate_s3_customisations.backup_migrate_exportables.inc
  */
 
 /**
  * Implements hook_exportables_backup_migrate_destinations().
  */
-function redactive_s3_database_backups_customisations_exportables_backup_migrate_destinations() {
+function redactive_backup_migrate_s3_customisations_exportables_backup_migrate_destinations() {
   $export = array();
 
   $item = new stdClass();
@@ -32,7 +32,7 @@ function redactive_s3_database_backups_customisations_exportables_backup_migrate
 /**
  * Implements hook_exportables_backup_migrate_schedules().
  */
-function redactive_s3_database_backups_customisations_exportables_backup_migrate_schedules() {
+function redactive_backup_migrate_s3_customisations_exportables_backup_migrate_schedules() {
   $export = array();
 
   $item = new stdClass();

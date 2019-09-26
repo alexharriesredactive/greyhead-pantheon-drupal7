@@ -49,6 +49,12 @@ projects:
   # declared under the `projects` key. The simplest declaration of a project
   # looks like this:
 
+  backup_migrate:
+    version: "3.6"
+    type: "module"
+  #    download:
+  #      overwrite: TRUE
+
   backup_migrate_s3:
     type: "module"
     subdir: "patched"
